@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1469993094 source:/home/daniel/Documentos/Fase1_201212596/main.c
+	<stdio.h>
+	<stdlib.h>
+	<stdbool.h>
+	<string.h>
+	<unistd.h>
+	<sys/stat.h>
+	<dirent.h>
+	<time.h>
+
