@@ -61,49 +61,6 @@ int contarcaracteres(char pal []) {
     return cantidad;
 }
 
-char** Splitpalabras(char* texto, const char cdelimitador) {
-    char** cadena = 0;
-    size_t contador = 0;
-    char* temp = texto;
-    char* apariciones = 0;
-    char delimitador[2];
-    delimitador[0] = cdelimitador;
-    delimitador[1] = 0;
-
-    //cuenta la cantidad de aparacianes del delimitadoritador para poder extraer los elementos
-    while (*temp) {
-        if (cdelimitador == *temp) {
-            contador++;
-            apariciones = temp;
-        }
-        /*if (*temp == '-') {
-         *temp = ' ';
-        }*/
-        temp++;
-    }
-    contador += apariciones < (texto + strlen(texto) - 1);
-    //printf("%d",contador);
-    //Añadir el espacio para la terminación de cadena nula por lo que llama
-    //sabe donde la lista de cadenas devueltas termina
-    contador++;
-
-    cadena = malloc(sizeof (char*) * contador);
-
-    if (cadena) {
-        size_t idx = 0;
-        char* token = strtok(texto, delimitador);
-
-        while (token) {
-            if (idx < contador)
-                *(cadena + idx++) = strdup(token);
-            token = strtok(0, delimitador);
-        }
-        if (idx == contador - 1)
-            *(cadena + idx) = 0;
-    }
-
-    return cadena;
-}
 
 void cambio(char pal[]) {
     int i;
@@ -128,7 +85,307 @@ void limpiarvariables(char pal[], int intervalo) {
         pal[f] = '\0';
     }
 }
+void mount(Comando cmd[]) {
+    bool name = false;
+    bool pat = false;
+    char auxpath[100];
+    char path[100];
+    char nombre[25];
+    limpiarvariables(auxpath, 100);
+    limpiarvariables(path, 100);
+    limpiarvariables(nombre, 25);
+    int i = 0;
+    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
+        if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
+            pat = true;
+            strcpy(path, cmd[i + 1].comando);
+            printf("LA PATH DEL DISCO SERA: %s \n", path);
+            limpiarvariables(auxpath, 100);
+            if (path[0] == '\"') {
+                int a;
+                //CONCATENANDO TODA LA PATH COMPLETA
+                for (a = i + 2; a < 25; a++) {
+                    strcpy(auxpath, cmd[a].comando);
+                    int b = contarcaracteres(auxpath);
+                    if (auxpath[b - 1] != '\"') {
+                        if (strcasecmp(auxpath, "vacio") == 0) {
+                            a = 25;
+                        } else {
+                            strcat(path, " ");
+                            strcat(path, auxpath);
+                        }
+                    } else {
+                        strcat(path, " ");
+                        strcat(path, auxpath);
+                        a = 25;
+                        //limpiarvariables(auxpath, 100);
+                    }
+                }
+                /**********QUITNADO LAS COMILLAS************/
+                limpiarvariables(auxpath, 100);
+                int l;
+                int cont = 0;
+                for (l = 1; l < 100; l++) {
+                    if (path[l] == '\"') {
+                        l = 100;
+                    } else {
+                        auxpath[cont] = path[l];
+                        cont++;
+                    }
+                }
+                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
+            } else {
+                strcpy(auxpath, path);
+            }
+        } else if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0) {
+            name = true;
+            strcpy(nombre, cmd[i + 1].comando);
+            printf("EL NOMBRE PARA MONTAR SERA:%s\n", nombre);
+        }
+        i++;
+    }
+     if (name == true && pat == true) {
+        //ACCIONES PARA MONTAR UNA PARTICION
+        }
+}
 
+void fdisk(Comando cmd[]) {
+    bool error = false;
+    bool unit = false;
+    bool type = false;
+    bool fit = false;
+    bool delete = false;
+    bool add = false;
+    bool name = false;
+    bool size = false;
+    bool path = false;
+    bool ejecuto = false;
+    char uni;
+    char adjust;
+    char typec;
+    char unidad [2];
+    char tipo[5];
+    char fitt[5];
+    char deletee[5];
+    int agregar;
+    char nombre[100];
+    int tamanio;
+    char pat[100];
+    bool existeunidad = false;
+    char auxpath[100];
+    limpiarvariables(auxpath, 100);
+    limpiarvariables(deletee, 5);
+    limpiarvariables(nombre, 100);
+    limpiarvariables(pat, 100);
+    limpiarvariables(unidad, 2);
+    limpiarvariables(tipo, 5);
+    limpiarvariables(fitt, 5);
+    int i = 0;
+
+    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
+        if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0) {
+            name = true;
+            strcpy(nombre, cmd[i + 1].comando);
+            printf("EL NOMBRE DE LA PARTICION SERA:%s\n", nombre);
+        } else if (strcasecmp(cmd[i].comando, "unit") == 0 || strcasecmp(cmd[i].comando, "+unit") == 0) {
+            unit = true;
+            strcpy(unidad, cmd[i + 1].comando);
+            existeunidad = true;
+            printf("LA UNIDAD DEL DISCO SERA:%s\n", unidad);
+            if (strcasecmp(unidad, "k") == 0) {
+                uni = 'K';
+            } else if (strcasecmp(unidad, "m") == 0) {
+                uni = 'M';
+            } else if (strcasecmp(unidad, "b") == 0) {
+                uni = 'B';
+            } else {
+                printf("ERROR LA UNIDAD ES %s INCORRECTA SOLO ADMITE [M|B|K]\n", unidad);
+                error = true;
+            }
+        } else if (strcasecmp(cmd[i].comando, "type") == 0 || strcasecmp(cmd[i].comando, "+type") == 0) {
+            type = true;
+            strcpy(tipo, cmd[i + 1].comando);
+            printf("EL TIPO DE PARTICION SERA:%s\n", tipo);
+            if (strcasecmp(tipo, "p") == 0) {
+                typec = 'P';
+            } else if (strcasecmp(tipo, "l") == 0) {
+                typec = 'L';
+            } else if (strcasecmp(tipo, "e") == 0) {
+                typec = 'E';
+            } else {
+                error = true;
+                printf("TIPO DE PARTICION NO VALIDA\n");
+            }
+        } else if (strcasecmp(cmd[i].comando, "fit") == 0 || strcasecmp(cmd[i].comando, "+fit") == 0) {
+            fit = true;
+            strcpy(fitt, cmd[i + 1].comando);
+            printf("EL NOMBRE DE LA PARTICION SERA:%s\n", fitt);
+            if (strcasecmp(fitt, "w") == 0 || strcasecmp(fitt, "wf") == 0) {
+                adjust = 'W';
+            } else if (strcasecmp(fitt, "b") == 0 || strcasecmp(fitt, "bf") == 0) {
+                adjust = 'B';
+            } else if (strcasecmp(fitt, "f") == 0 || strcasecmp(fitt, "ff") == 0) {
+                adjust = 'F';
+            } else {
+                printf("ERROR EL AJUSTE %s NO ES VALIDO [B-W-F]\n", fitt);
+                error = true;
+            }
+        } else if (strcasecmp(cmd[i].comando, "delete") == 0 || strcasecmp(cmd[i].comando, "+delete") == 0) {
+            delete = true;
+            strcpy(deletee, cmd[i + 1].comando);
+            printf("LA PARTICION A ELIMINAR SERA:%s\n", deletee);
+        } else if (strcasecmp(cmd[i].comando, "add") == 0 || strcasecmp(cmd[i].comando, "+add") == 0) {
+            add = true;
+            agregar = atoi(cmd[i + 1].comando);
+            printf("EL ESPACIO A AGREGAR SERA:%d\n", agregar);
+        } else if (strcasecmp(cmd[i].comando, "size") == 0 || strcasecmp(cmd[i].comando, "-size") == 0) {
+            tamanio = atoi(cmd[i + 1].comando);
+            if (tamanio > 0) {
+                size = true;
+                printf("EL TAMANIO DE LA PARTICION SERA:%d\n", tamanio);
+            } else {
+                error = true;
+                printf("NO SE ADMITE VALORES NEGATIVOS\n");
+            }
+        } else if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
+            path = true;
+            strcpy(pat, cmd[i + 1].comando);
+            printf("LA PATH DEL DISCO SERA: %s \n", pat);
+            limpiarvariables(auxpath, 100);
+            if (pat[0] == '\"') {
+                int a;
+                //CONCATENANDO TODA LA PATH COMPLETA
+                for (a = i + 2; a < 25; a++) {
+                    strcpy(auxpath, cmd[a].comando);
+                    int b = contarcaracteres(auxpath);
+                    if (auxpath[b - 1] != '\"') {
+                        if (strcasecmp(auxpath, "vacio") == 0) {
+                            a = 25;
+                        } else {
+                            strcat(pat, " ");
+                            strcat(pat, auxpath);
+                        }
+                    } else {
+                        strcat(pat, " ");
+                        strcat(pat, auxpath);
+                        a = 25;
+                    }
+                }
+                /**********QUITNADO LAS COMILLAS************/
+                limpiarvariables(auxpath, 100);
+                int l;
+                int cont = 0;
+                for (l = 1; l < 100; l++) {
+                    if (pat[l] == '\"') {
+                        l = 100;
+                    } else {
+                        auxpath[cont] = pat[l];
+                        cont++;
+                    }
+                }
+                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
+            } else {
+                strcpy(auxpath, pat);
+            }
+        }
+        i++;
+    }
+
+    /*********************CREANDO PARTICIONES*************/
+
+    if (size == true && path == true && name == true && error == false && ejecuto == false) {
+        ejecuto = true;
+        int tamanoreal;
+        if (existeunidad == false) {
+            uni = 'K';
+        }
+        FILE * archivo;
+        Particion * nueva = malloc(sizeof (Particion));
+        int final, comienzo;
+        strcpy(nueva->part_name, nombre);
+        nueva->part_size = tamanio;
+        char * cadena = ("\"%s\"", auxpath);
+        archivo = fopen(cadena, "rb+");
+        MBR * mb = malloc(sizeof (MBR));
+        if (archivo != NULL) {
+            if ((comienzo = ftell(archivo)) < 0) {
+                printf("ERROR: ftell no ha funcionado\n");
+            } else {
+                    if (type == false) {
+                        typec = 'P';
+                    }
+                    if (fit == false) {
+                        adjust = 'W';
+                    }
+                    if (unit == false) {
+                        uni = 'K';
+                        tamanoreal = tamanio * 1024;
+                    } else {
+                        if (uni == 'K' || uni == 'k') {
+                            tamanoreal = tamanio * 1024;
+                        } else if (uni == 'B' || uni == 'b') {
+                            tamanoreal = tamanio;
+                        } else if (uni == 'M' || uni == 'm') {
+                            tamanoreal = (tamanio * 1024)*1024;
+                        }
+
+                    }
+                   //METODO PARA CREAR PARTICIONES
+                            }
+        }
+    } else {
+        if (delete == true && name == true && path == true && error == false) {
+
+        } else {
+            if (path == true && name == true && add == true && error == false) {
+
+            } else {
+                printf("FALTA PARAMETRO SIZE, PATH O NAME - IMPOSIBLE CREAR PARTICION\n");
+
+            }
+        }
+    }
+
+
+    /************************ELIMINAR PARTICION***********************************/
+    if (ejecuto == false) {
+        if (delete == true && name == true && path == true && error == false) {
+          //METODO PARA ELIMINAR PARTICIONES
+            ejecuto = true;
+        } else {
+            if (path == true && name == true && add == true && error == false) {
+
+            } else {
+                printf("IMPOSIBLE ELIMINAR LA PARTICION FALTA PARAMETRO PATH, DELETE O NOMBRE DE LA PARTICION\n");
+
+            }
+
+        }
+    }
+    /**************************AGREGAR ESPACIO************************************/
+    if (ejecuto == false) {
+        if (path == true && name == true && add == true && error == false) {
+            int valorreal;
+            if (unit == false) {
+                uni = 'K';
+                valorreal = agregar * 1024;
+            } else {
+
+                if (uni == 'b' || uni == 'B') {
+                    valorreal = agregar;
+                } else if (uni == 'm' || uni == 'M') {
+                    valorreal = (agregar * 1024)*1024;
+                } else if (uni == 'k' || uni == 'K') {
+                    valorreal = (agregar * 1024);
+                }
+            }
+          //METODO PARA GREGAR ESPACIO
+        } else {
+            printf("ERROR FALTA PARAMETRO [NAME-PATH-ADD]\n");
+        }
+    }
+
+}
 
 void Mkdisk(Comando cmd[]) {
     bool size = false;
@@ -368,46 +625,36 @@ void rmDisk(Comando cmd[]) {
 void existepath(char path[]) {
     char aux [500];
     strcpy(aux, path);
-    char cmd[] = "mkdir";
     struct stat datosficheros;
     lstat(aux, &datosficheros);
     if (S_ISREG(datosficheros.st_mode)) {
         printf("YA EXISTE LA CARPETA\n");
     } else {
-
         /**************COMPROBANDO QUE CADA DIRECCION DEL PATH EXISTA*********************/
         char completo[500];
         strcpy(completo, path);
-        char** variables;
         int i = sabercuantosslash(path);
         char value[500];
-        //    printf("La canitdad de slash son:%d\n", i);
-        //  printf("el comando para parsear el path es:%s\n", aux);
         int limite = i - 1;
         int j;
         int contador = 0;
         strcpy(value, "/home");
-        variables = Splitpalabras(aux, '/');
-
-        if (variables) {
-            for (j = 0; *(variables + j); j++) {
-
-                char * valor = *(variables + j);
-                if (contador > 0) {
+        char * token;
+        token = strtok(completo,"/");
+        while(token!=NULL){
+               if (contador > 0) {
                     if (contador < limite) {
                         strcat(value, "/");
-                        strcat(value, valor);
+                        strcat(value, token);
                     }
                     if (mkdir(value, S_IRWXU) == 0) {
                         printf("SE CREARA LA CARPETA %s\n", value);
                     }
                 }
                 contador++;
-            }
-            free(*(variables + j));
+                token = strtok(NULL,"/");
         }
         printf("\n");
-        free(variables);
     }
 }
 
@@ -444,14 +691,12 @@ int sabercuantosslash(char * path) {
         int final = strlen(pal) - 1;
         int asci = pal[final];
         char c = pal[final];
-        //printf("EL ASCII ES: %d",asci);
-        if (asci == 47) {
+        if (asci == 92) {
             pal[final] = ' ';
             fgets(aux, 100, stdin);
             cambio(aux);
         }
         strcat(pal, aux);
-        //printf("COMPLETA: %s",pal);
         if (strcasecmp(pal, "exit") == 0) {
             salida = 0;
             retornarfecha();
@@ -472,6 +717,10 @@ int sabercuantosslash(char * path) {
                 rmDisk(VComandos);
             } else if (strcasecmp(VComandos[0].comando, "clear") == 0) {
                 system("clear");
+            } else if (strcasecmp(VComandos[0].comando, "fdisk") == 0) {
+                fdisk(VComandos);
+            }  else if (strcasecmp(VComandos[0].comando, "mount") == 0) {
+                mount(VComandos);
             } else {
                 printf("COMANDO INVALIDO\n");
             }
