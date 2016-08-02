@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <time.h>
 
+void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char tipo, char fit);
 typedef struct {
     char comando [100];
 } Comando;
@@ -147,6 +148,164 @@ void mount(Comando cmd[]) {
      if (name == true && pat == true) {
         //ACCIONES PARA MONTAR UNA PARTICION
         }
+}
+
+int cuantasEXTENDIDAS(MBR mb) {
+    int extendidas = 0;
+    int i;
+    for (i = 0; i < 4; i++) {
+        if ((mb.particiones[i].part_type == 'E' || mb.particiones[i].part_type == 'e') && mb.particiones[i].part_status == '1') {
+            extendidas = 1;
+        }
+    }
+    return extendidas;
+}
+
+int cuantasPRIMARIAS(MBR mb) {
+    int primaria = 0;
+    int i;
+    for (i = 0; i < 4; i++) {
+        if ((mb.particiones[i].part_type == 'p' || mb.particiones[i].part_type == 'P') && mb.particiones[i].part_status == '1') {
+            primaria++;
+        }
+    }
+    return primaria;
+}
+
+void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char tipo, char fit) {
+    int cantPrimarias;
+    int cantExtendidas;
+    int totalparticiones;
+    bool error = false;
+    bool errores = false;
+    bool hayebr = false;
+    FILE *disco;
+    MBR mbr;
+    disco = fopen(nombreArchivo, "rb+");
+    if (disco != NULL) { //SI existe el disco
+        fseek(disco, 0L, SEEK_SET);
+        fread(&mbr, sizeof (MBR), 1, disco);
+        cantPrimarias = cuantasPRIMARIAS(mbr);
+        cantExtendidas = cuantasEXTENDIDAS(mbr);
+        totalparticiones = cantExtendidas + cantPrimarias;
+        int i;
+        //LA NUEVA PARTICION QUE SE VA A INSERTAR
+        Particion particion;
+        particion.part_fit = fit;
+        strcpy(particion.part_name, nombre);
+        particion.part_size = tamanoreal;
+        particion.part_status = '1';
+         int tamanodisponible;
+        bool existe = false;
+        /**************validando nombres iguales*/
+        int b;
+        for (b = 0; b < 4; b++) {
+            if (strcmp(mbr.particiones[b].part_name, nombre) == 0) {
+                printf("IMPOSIBLE CREAR LA PARTICION %s YA EXISTE UNA CON EL MISMO NOMBRE\n", nombre);
+                b = 5;
+                existe = true;
+            }
+        }
+
+
+        /***************INICIA
+                                CREACION DE PARTICIONES
+                                                        ************/
+        if (tipo == 'P' || tipo == 'p') {
+            particion.part_type = tipo;
+            if (cantPrimarias < 3) {
+                //NO EXISTE NINGUNA PARTICIAN ESTA ES LA PRIMERA
+                if (totalparticiones == 0) {
+                    tamanodisponible = mbr.mbr_tamanio - (sizeof (MBR) + 1);
+                    int i;
+                    if (mbr.particiones[0].part_status == '0') {
+                        particion.part_start = sizeof (MBR) + 1;
+                        particion.part_size = tamanoreal;
+                        if (tamanodisponible > tamanoreal) {
+                            mbr.particiones[0] = particion;
+                            fseek(disco, 0L, SEEK_SET);
+                            fwrite(&mbr, sizeof (MBR), 1, disco);
+                            printf("SE CREO LA PARTICION %s DE TIPO PRIMARIA\n", nombre);
+                        } else {
+                            printf("NO HAY ESPACIO PARA CREAR LA PARTICION %s \n", nombre);
+                        }
+                    }
+                } else {
+                    //ORDENAN LAS PARTICIONES DE MAYOR A MENOR MEDIANTE EL BIT DE INICIO PARA VALIDAR LAS FRAGMENTACION
+                    Particion auxpart[totalparticiones];
+                    int j, p, cont = 0;
+                    int espaciolibre;
+                    for (j = 0; j < 4; j++) {
+                        if (mbr.particiones[j].part_status == '1') {
+                            auxpart[cont] = mbr.particiones[j];
+                            cont++;
+                        }
+                    }
+                    //PARTICIONES ORDENADAS :D
+                    for (j = 0; j < totalparticiones; j++) {
+                        for (p = 0; p < totalparticiones - 1; p++) {
+                            if (auxpart[p].part_start > auxpart[p + 1].part_start) {
+                                Particion aux = auxpart[p];
+                                auxpart[p] = auxpart[p + 1];
+                                auxpart[p + 1] = aux;
+                            }
+                        }
+                    }
+
+                    if (existe == false) {
+                        //SE PUEDE CREAR LA PARTICION NO HAY ERROR CON EL NOMBRE
+                        int c;
+                        for (c = 1; c < (totalparticiones + 1); c++) {
+                            if (c == totalparticiones) {
+                                //ESTA SITUADO EN LA ULTIMA PARTICION
+                                espaciolibre = mbr.mbr_tamanio - (auxpart[c - 1].part_start + auxpart[c - 1].part_size); //SE LE RESTA EL TAMANIO TOTAL AL TAMANIO DE LA PARTICON ANTERIOR A LA NUEVA
+                                if (espaciolibre >= tamanoreal) {
+                                    particion.part_start = (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
+                                    int i;
+                                    for (i = 0; i < 4; i++) {
+                                        if (mbr.particiones[i].part_status == '0') {
+                                            mbr.particiones[i] = particion;
+                                            fseek(disco, 0L, SEEK_SET);
+                                            fwrite(&mbr, sizeof (MBR), 1, disco);
+                                            printf("SE CREO LA PARTICION %s DE TIPO PRIMARIA\n", nombre);
+                                            i = 4;
+                                            c = 4;
+                                        }
+                                    }
+
+                                }
+                            } else {
+                                //SI ESTA POSICINADO EN UNA PARTICION Y ADELANTE DE ELLA HAY OTRA SE CALCULA ESPACIO LIBRE
+                                espaciolibre = auxpart[c].part_start - (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
+                                if (espaciolibre >= tamanoreal) {
+                                    particion.part_start = auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1;
+                                    int i;
+                                    for (i = 0; i < 4; i++) {
+                                        if (mbr.particiones[i].part_status == '0') {
+                                            mbr.particiones[i] = particion;
+                                            fseek(disco, 0L, SEEK_SET);
+                                            fwrite(&mbr, sizeof (MBR), 1, disco);
+                                            printf("SE CREO LA PARTICION %s DE TIPO PRIMARIA\n", nombre);
+                                            i = 4;
+                                            c = 4;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+            } else {
+                printf("ESTE DISCO NO CUENTA CON ESPACIO PARA UNA PARTICION PRIMARIA HA ALCANZADO EL LIMETE DE 3 PRIMARIAS\n");
+            }
+        }
+
+        fclose(disco);
+    } else {
+        printf("NO EXISTE EL DISCO\n");
+    }
+
 }
 
 void fdisk(Comando cmd[]) {
@@ -330,8 +489,7 @@ void fdisk(Comando cmd[]) {
                         }
 
                     }
-                   //METODO PARA CREAR PARTICIONES
-                            }
+                   crearParticion(cadena, tamanoreal, nombre, typec, adjust);          }
         }
     } else {
         if (delete == true && name == true && path == true && error == false) {
@@ -345,8 +503,6 @@ void fdisk(Comando cmd[]) {
             }
         }
     }
-
-
     /************************ELIMINAR PARTICION***********************************/
     if (ejecuto == false) {
         if (delete == true && name == true && path == true && error == false) {
