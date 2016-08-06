@@ -429,6 +429,263 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                 printf("ESTE DISCO NO CUENTA CON ESPACIO PARA ALMACENAR UNA PARTICION DE TIPO EXTENDIDA ALCANZO LIMITE DE 1 EXTENDIDA\n");
             }
 
+        }else if (tipo == 'L' || tipo == 'l') {
+            particion.part_type = tipo;
+            EBR ebr;
+            Particion extendaux;
+            if (cantExtendidas == 1) {
+                for (i = 0; i < 4; i++) {
+                    if (mbr.particiones[i].part_type == 'E' || mbr.particiones[i].part_type == 'e') {
+                        extendaux = mbr.particiones[i];
+                        break;
+                    }
+                }
+                if (tamanoreal <= extendaux.part_size) {
+                    if (existe == false) {
+                        //PARTICION QUE VA A SUSTITUIR
+                        EBR veclogicas[50];
+                        int logic = 0;
+                        int j;
+                        EBR ebr;
+
+                        fseek(disco, extendaux.part_start, SEEK_SET);
+                        fread(&ebr, sizeof (EBR), 1, disco);
+                        j = 0;
+                        while (j < 50) {
+                            if (ebr.part_next == -1) {
+                                if (ebr.part_status == '1') {
+                                    veclogicas[logic] = ebr;
+                                    logic++;
+                                }
+                                break;
+                            }
+                            if (ebr.part_status == '1') {
+                                veclogicas[logic] = ebr;
+                                logic++;
+
+                            } else if (ebr.part_status == '0' && ebr.part_start == extendaux.part_start) {
+                                //ES LA PRIMERA PARTICION PERO ESTA "ELIMINADA"
+                                veclogicas[logic] = ebr;
+                                logic++;
+
+                            }
+                            fseek(disco, ebr.part_next, SEEK_SET);
+                            fread(&ebr, sizeof (EBR), 1, disco);
+                            j++;
+                        }
+                        int logicas = logic - 1;
+                        j = 0;
+                        bool inserto = false;
+
+                        EBR final, siguiente, anterior, actual;
+
+                        //SI LA PRIMERA PARTICION EXISTE PERO ESTA INACTIVA
+                        fseek(disco, extendaux.part_start, SEEK_SET);
+                        fread(&actual, sizeof (EBR), 1, disco);
+                        if (actual.part_status == '0' && actual.part_start == extendaux.part_start) {
+                            EBR ebrprimero;
+                            fseek(disco, extendaux.part_start, SEEK_SET);
+                            fread(&actual, sizeof (EBR), 1, disco);
+                            if (actual.part_next == -1) {
+                                //SOLO EXISTE LA LOGICA POR DEFAUL, TAMANIO DE LA EXT - TAML +SIZEEBR
+                                if (extendaux.part_size > (tamanoreal - sizeof (EBR))) {
+                                    ebrprimero.part_fit = 'N';
+                                    strcpy(ebrprimero.part_name, "N");
+                                    ebrprimero.part_next = -1;
+                                    ebrprimero.part_size = sizeof (EBR);
+                                    actual.part_size = tamanoreal + sizeof (EBR);
+                                    actual.part_start = extendaux.part_start;
+                                    ebrprimero.part_start = (actual.part_start + actual.part_size + 1);
+                                    ebrprimero.part_status = '0';
+                                    actual.part_fit = fit;
+                                    strcpy(actual.part_name, nombre);
+                                    actual.part_status = '1';
+                                    actual.part_next = ebrprimero.part_start; //la siguiente de la que se esta analizando esta donde ella misma termina
+                                    fseek(disco, ebrprimero.part_start, SEEK_SET);
+                                    fwrite(&ebrprimero, sizeof (EBR), 1, disco);
+                                    fseek(disco, actual.part_start, SEEK_SET);
+                                    fwrite(&actual, sizeof (EBR), 1, disco);
+                                    printf("SE CREO LA PARTICION  %s CORRECTAMENTE \n", nombre);
+                                    inserto = true;
+                                } else {
+                                    printf("NO HAY ESPACIO PARA CREAR ESTA PARTICION\n");
+                                }
+
+                            } else if (actual.part_next != -1) {
+                                EBR ver = veclogicas[logicas];
+                                //SI HAY ESPACIO EN MEDIO DE DOS PARTICIONES
+                                int espacio = actual.part_next - (actual.part_start + 1);
+                                if (espacio > tamanoreal - sizeof (EBR)) {
+                                    actual.part_fit = fit;
+                                    strcpy(actual.part_name, nombre);
+                                    actual.part_size = tamanoreal + sizeof (ebr);
+                                    actual.part_status = '1';
+                                    fseek(disco, actual.part_start, SEEK_SET);
+                                    fwrite(&actual, sizeof (EBR), 1, disco);
+                                    printf("SE CREO LA PARTICION  %s CORRECTAMENTE  AL INICIO DEL DISCO LA PARTICION ESTA INACTIVA\n", nombre);
+                                    inserto = true;
+
+                                }
+                            }
+                        }
+
+
+
+                        //SI ES LA PRIMER PARTICION
+                        if (logic == 0 && inserto == false) {
+                            EBR ebrprimero;
+                            fseek(disco, extendaux.part_start, SEEK_SET);
+                            fread(&actual, sizeof (EBR), 1, disco);
+                            if (actual.part_next == -1) {
+                                //SOLO EXISTE LA LOGICA POR DEFAUL, TAMANIO DE LA EXT - TAML +SIZEEBR
+                                if (extendaux.part_size > (tamanoreal - sizeof (EBR))) {
+                                    ebrprimero.part_fit = 'N';
+                                    strcpy(ebrprimero.part_name, "N");
+                                    ebrprimero.part_next = -1;
+                                    ebrprimero.part_size = sizeof (EBR);
+                                    actual.part_size = tamanoreal + sizeof (EBR);
+                                    actual.part_start = extendaux.part_start;
+                                    ebrprimero.part_start = (actual.part_start + actual.part_size + 1);
+                                    ebrprimero.part_status = '0';
+                                    actual.part_fit = fit;
+                                    strcpy(actual.part_name, nombre);
+                                    actual.part_status = '1';
+                                    actual.part_next = ebrprimero.part_start; //la siguiente de la que se esta analizando esta donde ella misma termina
+                                    fseek(disco, ebrprimero.part_start, SEEK_SET);
+                                    fwrite(&ebrprimero, sizeof (EBR), 1, disco);
+                                    fseek(disco, actual.part_start, SEEK_SET);
+                                    fwrite(&actual, sizeof (EBR), 1, disco);
+                                    printf("SE CREO LA PARTICION  %s CORRECTAMENTE \n", nombre);
+                                    inserto = true;
+                                } else {
+                                    printf("NO HAY ESPACIO PARA CREAR ESTA PARTICION\n");
+                                }
+
+                            }
+
+                        } else {
+                            while (logicas >= 0) {
+
+
+                                if (veclogicas[logicas].part_next != -1 && logic > 0)
+                                    //CUANTO ADELANTE DE EL NO ESTA LA ULTIMA PARTICION
+                                    if (logic > 0 && logicas <= (logic - 1)) {
+                                        actual = veclogicas[logicas];
+                                        fseek(disco, actual.part_next, SEEK_SET);
+                                        fread(&siguiente, sizeof (EBR), 1, disco);
+                                        int libre = (actual.part_size + actual.part_start + 1) - siguiente.part_start;
+                                        if (libre > 0) {
+                                            if (libre > tamanoreal - sizeof (EBR)) {
+                                                EBR ebrprimero;
+                                                ebrprimero.part_fit = fit;
+                                                strcpy(ebrprimero.part_name, nombre);
+                                                ebrprimero.part_next = siguiente.part_start;
+                                                ebrprimero.part_size = tamanoreal + sizeof (EBR);
+                                                ebrprimero.part_start = (actual.part_start + actual.part_size + 1);
+                                                ebrprimero.part_status = '1';
+                                                actual.part_next = ebrprimero.part_start;
+                                                fseek(disco, actual.part_start, SEEK_SET);
+                                                fwrite(&actual, sizeof (EBR), 1, disco);
+                                                fseek(disco, ebrprimero.part_start, SEEK_SET);
+                                                fwrite(&ebrprimero, sizeof (EBR), 1, disco);
+                                                fseek(disco, siguiente.part_start, SEEK_SET);
+                                                fwrite(&siguiente, sizeof (EBR), 1, disco);
+                                                printf("SE CREO LA PARTICION %s CORRECTAMENTE AL INICIO DE LA PARTICION\n", nombre);
+                                                inserto = true;
+                                                break;
+
+                                            }
+                                        } else {
+                                            int limit = 0;
+                                            int index = logicas;
+                                            while (limit <= logicas) {
+                                                actual = veclogicas[limit];
+                                                fseek(disco, actual.part_next, SEEK_SET);
+                                                fread(&siguiente, sizeof (EBR), 1, disco);
+                                                if (libre > 0) {
+                                                    //SI HAY ESPACIO ENTRE PARTICIONES
+                                                    if (libre > tamanoreal - sizeof (EBR)) {
+                                                        EBR ebrprimero;
+                                                        ebrprimero.part_fit = fit;
+                                                        strcpy(ebrprimero.part_name, nombre);
+                                                        ebrprimero.part_next = siguiente.part_start;
+                                                        ebrprimero.part_size = tamanoreal + sizeof (EBR);
+                                                        ebrprimero.part_start = (actual.part_start + actual.part_size + 1);
+                                                        ebrprimero.part_status = '1';
+                                                        actual.part_next = ebrprimero.part_start;
+                                                        fseek(disco, actual.part_start, SEEK_SET);
+                                                        fwrite(&actual, sizeof (EBR), 1, disco);
+                                                        fseek(disco, ebrprimero.part_start, SEEK_SET);
+                                                        fwrite(&ebrprimero, sizeof (EBR), 1, disco);
+                                                        fseek(disco, siguiente.part_start, SEEK_SET);
+                                                        fwrite(&siguiente, sizeof (EBR), 1, disco);
+                                                        printf("SE CREO LA PARTICION %s CORRECTAMENTE ENTRE LA PARTICION %s Y %s \n", nombre, actual.part_name, siguiente.part_name);
+                                                        inserto = true;
+                                                        break;
+                                                    }
+
+                                                } else {
+                                                    actual = siguiente;
+                                                    if (siguiente.part_next != -1) {
+                                                        fseek(disco, siguiente.part_next, SEEK_SET);
+                                                        fread(&siguiente, sizeof (EBR), 1, disco);
+                                                        libre = siguiente.part_start - (actual.part_size + actual.part_start + 1);
+
+                                                    } else {
+                                                        break;
+                                                    }
+
+                                                }
+                                                index--;
+                                                limit++;
+                                            }
+                                            if (inserto == false) {
+                                                int librefinal = (extendaux.part_size + extendaux.part_start) - (siguiente.part_start + sizeof (EBR));
+                                                if (librefinal > tamanoreal - sizeof (EBR)) {
+                                                    EBR ebrprimero;
+                                                    ebrprimero.part_fit = 'N';
+                                                    strcpy(ebrprimero.part_name, "N");
+                                                    ebrprimero.part_next = -1;
+                                                    ebrprimero.part_size = sizeof (EBR);
+                                                    siguiente.part_size = tamanoreal + sizeof (EBR);
+                                                    ebrprimero.part_start = (siguiente.part_start + siguiente.part_size + 1);
+                                                    ebrprimero.part_status = '0';
+                                                    siguiente.part_fit = fit;
+                                                    strcpy(siguiente.part_name, nombre);
+                                                    siguiente.part_status = '1';
+                                                    siguiente.part_next = ebrprimero.part_start; //la siguiente de la que se esta analizando esta donde ella misma termina
+                                                    fseek(disco, ebrprimero.part_start, SEEK_SET);
+                                                    fwrite(&ebrprimero, sizeof (EBR), 1, disco);
+                                                    fseek(disco, siguiente.part_start, SEEK_SET);
+                                                    fwrite(&siguiente, sizeof (EBR), 1, disco);
+                                                    printf("SE CREO LA PARTICION %s CORRECTAMENTE AL FINAL DEL DISCO \n", nombre);
+                                                    break;
+                                                } else {
+                                                    printf("NO EXISTE ESPACIO PARA ESTA PARTICION\n");
+                                                    inserto = true;
+                                                    break;
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                if (inserto == true) {
+                                    break;
+                                } else {
+                                    logicas--;
+
+                                }
+
+                            }
+                        }
+
+                    }
+                } else {
+                    printf("TAMANO INCORRECTO ES MAS GRANDE EL TAMANO DE LA LOGICA \n");
+                }
+            } else {
+                printf("NO SE CUENTA CON UNA PARTICION EXTENDIDA PARA ALMACENAR LA PARTICION LOGICA\n");
+            }
         }
 
         fclose(disco);
@@ -689,7 +946,11 @@ void fdisk(Comando cmd[]) {
                         }
 
                     }
+                    if(tamanoreal>=(2*1024*1024)){
                     crearParticion(cadena, tamanoreal, auxnombre, typec, adjust);
+                    }else{
+                        printf("ERROR DE TAMANIO, TIENE QUE TENER POR LO MENOS 2 MB\n");
+                    }
 
             }
         }else{
