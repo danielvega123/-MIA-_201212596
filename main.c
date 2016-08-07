@@ -8,11 +8,49 @@
 #include <time.h>
 
 void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char tipo, char fit);
-typedef struct {
+typedef struct
+{
     char comando [100];
 } Comando;
 
-typedef struct {
+//variables para montar
+int cuantosmontados = 0;
+char IDA[6];
+typedef struct
+{
+    int aparicion;
+    bool ocupado;
+} Posiciones;
+
+typedef struct
+{
+    char id[10];
+} idunmount;
+
+typedef struct
+{
+    char path[100];
+    Posiciones vda[100];
+} Montados;
+
+//VECTOR DE ID
+Montados Mounts[25];
+char letra [25] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+
+typedef struct
+{
+    int tamanio;
+    int iniciopart;
+    char id[10];
+    Montados parametros;
+    char nombreParticion[25];
+} NodoMontados;
+
+NodoMontados YAmontados[100];
+
+
+typedef struct
+{
     char part_status; //Indica si la partición está activa o no
     char part_type; /*Indica el tipo de partición, primaria o extendida.
 Tendrá los valores P o E*/
@@ -24,7 +62,8 @@ W (worst)*/
 } Particion;
 
 
-typedef struct {
+typedef struct
+{
     int mbr_tamanio; //Tamaño total del disco en bytes
     char mbr_fecha_creacion [25]; //Fecha y hora de creación del disco
     int mbr_disk_signature; //Número random, que identifica de forma única a cada disco
@@ -35,7 +74,8 @@ typedef struct {
     Particion particiones[4];
 } MBR;
 
-typedef struct {
+typedef struct
+{
     char part_status; // Indica si la partición está activa o no
     char part_fit; /*Tipo de ajuste de la partición. Tendrá los valores B (Best), F (First) o
 W (worst)*/
@@ -47,7 +87,8 @@ W (worst)*/
 
 Comando VComandos[25];
 
-char * retornarfecha() {
+char * retornarfecha()
+{
     time_t t;
     struct tm *tm;
     char fechayhora[100];
@@ -59,129 +100,85 @@ char * retornarfecha() {
     return fechayhora;
 }
 
-int contarcaracteres(char pal []) {
+int contarcaracteres(char pal [])
+{
     int i;
     int cantidad = 0;
-    for (i = 0; i < strlen(pal); i++) {
-        if (pal[i] != '\0') {
+    for (i = 0; i < strlen(pal); i++)
+    {
+        if (pal[i] != '\0')
+        {
             cantidad++;
-        } else {
+        }
+        else
+        {
         }
     }
     return cantidad;
 }
 
 
-void cambio(char pal[]) {
+void cambio(char pal[])
+{
     int i;
-    for (i = 0; i < 200; i++) {
-        if (pal[i] == '\n' || pal[i] == '\r') {
+    for (i = 0; i < 200; i++)
+    {
+        if (pal[i] == '\n' || pal[i] == '\r')
+        {
             pal[i] = '\0';
             i = 200;
         }
     }
 }
 
-void limpiarcomando() {
+void limpiarcomando()
+{
     int i;
-    for (i = 0; i < 25; i++) {
+    for (i = 0; i < 25; i++)
+    {
         strcpy(VComandos[i].comando, "VACIO");
     }
 }
 
-void limpiarvariables(char pal[], int intervalo) {
+void limpiarvariables(char pal[], int intervalo)
+{
     int f;
-    for (f = 0; f < intervalo; f++) {
+    for (f = 0; f < intervalo; f++)
+    {
         pal[f] = '\0';
     }
 }
-void mount(Comando cmd[]) {
-    bool name = false;
-    bool pat = false;
-    char auxpath[100];
-    char path[100];
-    char nombre[25];
-    limpiarvariables(auxpath, 100);
-    limpiarvariables(path, 100);
-    limpiarvariables(nombre, 25);
-    int i = 0;
-    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
-        if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
-            pat = true;
-            strcpy(path, cmd[i + 1].comando);
-            printf("LA PATH DEL DISCO SERA: %s \n", path);
-            limpiarvariables(auxpath, 100);
-            if (path[0] == '\"') {
-                int a;
-                //CONCATENANDO TODA LA PATH COMPLETA
-                for (a = i + 2; a < 25; a++) {
-                    strcpy(auxpath, cmd[a].comando);
-                    int b = contarcaracteres(auxpath);
-                    if (auxpath[b - 1] != '\"') {
-                        if (strcasecmp(auxpath, "vacio") == 0) {
-                            a = 25;
-                        } else {
-                            strcat(path, " ");
-                            strcat(path, auxpath);
-                        }
-                    } else {
-                        strcat(path, " ");
-                        strcat(path, auxpath);
-                        a = 25;
-                        //limpiarvariables(auxpath, 100);
-                    }
-                }
-                /**********QUITNADO LAS COMILLAS************/
-                limpiarvariables(auxpath, 100);
-                int l;
-                int cont = 0;
-                for (l = 1; l < 100; l++) {
-                    if (path[l] == '\"') {
-                        l = 100;
-                    } else {
-                        auxpath[cont] = path[l];
-                        cont++;
-                    }
-                }
-                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
-            } else {
-                strcpy(auxpath, path);
-            }
-        } else if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0) {
-            name = true;
-            strcpy(nombre, cmd[i + 1].comando);
-            printf("EL NOMBRE PARA MONTAR SERA:%s\n", nombre);
-        }
-        i++;
-    }
-     if (name == true && pat == true) {
-        //ACCIONES PARA MONTAR UNA PARTICION
-        }
-}
 
-int cuantasEXTENDIDAS(MBR mb) {
+int cuantasEXTENDIDAS(MBR mb)
+{
     int extendidas = 0;
     int i;
-    for (i = 0; i < 4; i++) {
-        if ((mb.particiones[i].part_type == 'E' || mb.particiones[i].part_type == 'e') && mb.particiones[i].part_status == '1') {
+    for (i = 0; i < 4; i++)
+    {
+        if ((mb.particiones[i].part_type == 'E' || mb.particiones[i].part_type == 'e') && mb.particiones[i].part_status == '1')
+        {
             extendidas = 1;
         }
     }
     return extendidas;
 }
 
-int cuantasPRIMARIAS(MBR mb) {
+int cuantasPRIMARIAS(MBR mb)
+{
     int primaria = 0;
     int i;
-    for (i = 0; i < 4; i++) {
-        if ((mb.particiones[i].part_type == 'p' || mb.particiones[i].part_type == 'P') && mb.particiones[i].part_status == '1') {
+    for (i = 0; i < 4; i++)
+    {
+        if ((mb.particiones[i].part_type == 'p' || mb.particiones[i].part_type == 'P') && mb.particiones[i].part_status == '1')
+        {
             primaria++;
         }
     }
     return primaria;
 }
 
-void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char tipo, char fit) {
+void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char tipo, char fit)
+{
     int cantPrimarias;
     int cantExtendidas;
     int totalparticiones;
@@ -191,7 +188,8 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
     FILE *disco;
     MBR mbr;
     disco = fopen(nombreArchivo, "rb+");
-    if (disco != NULL) { //SI existe el disco
+    if (disco != NULL)   //SI existe el disco
+    {
         fseek(disco, 0L, SEEK_SET);
         fread(&mbr, sizeof (MBR), 1, disco);
         cantPrimarias = cuantasPRIMARIAS(mbr);
@@ -204,12 +202,14 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
         strcpy(particion.part_name, nombre);
         particion.part_size = tamanoreal;
         particion.part_status = '1';
-         int tamanodisponible;
+        int tamanodisponible;
         bool existe = false;
         /**************validando nombres iguales*/
         int b;
-        for (b = 0; b < 4; b++) {
-            if (strcmp(mbr.particiones[b].part_name, nombre) == 0) {
+        for (b = 0; b < 4; b++)
+        {
+            if (strcmp(mbr.particiones[b].part_name, nombre) == 0)
+            {
                 printf("IMPOSIBLE CREAR LA PARTICION %s YA EXISTE UNA CON EL MISMO NOMBRE\n", nombre);
                 b = 5;
                 existe = true;
@@ -220,40 +220,54 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
         /***************INICIA
                                 CREACION DE PARTICIONES
                                                         ************/
-        if (tipo == 'P' || tipo == 'p') {
+        if (tipo == 'P' || tipo == 'p')
+        {
             particion.part_type = tipo;
-            if (cantPrimarias < 3) {
+            if (cantPrimarias < 3)
+            {
                 //NO EXISTE NINGUNA PARTICIAN ESTA ES LA PRIMERA
-                if (totalparticiones == 0) {
+                if (totalparticiones == 0)
+                {
                     tamanodisponible = mbr.mbr_tamanio - (sizeof (MBR) + 1);
                     int i;
-                    if (mbr.particiones[0].part_status == '0') {
+                    if (mbr.particiones[0].part_status == '0')
+                    {
                         particion.part_start = sizeof (MBR) + 1;
                         particion.part_size = tamanoreal;
-                        if (tamanodisponible > tamanoreal) {
+                        if (tamanodisponible > tamanoreal)
+                        {
                             mbr.particiones[0] = particion;
                             fseek(disco, 0L, SEEK_SET);
                             fwrite(&mbr, sizeof (MBR), 1, disco);
                             printf("SE CREO LA PARTICION %s DE TIPO PRIMARIA\n", nombre);
-                        } else {
+                        }
+                        else
+                        {
                             printf("NO HAY ESPACIO PARA CREAR LA PARTICION %s \n", nombre);
                         }
                     }
-                } else {
+                }
+                else
+                {
                     //ORDENAN LAS PARTICIONES DE MAYOR A MENOR MEDIANTE EL BIT DE INICIO PARA VALIDAR LAS FRAGMENTACION
                     Particion auxpart[totalparticiones];
                     int j, p, cont = 0;
                     int espaciolibre;
-                    for (j = 0; j < 4; j++) {
-                        if (mbr.particiones[j].part_status == '1') {
+                    for (j = 0; j < 4; j++)
+                    {
+                        if (mbr.particiones[j].part_status == '1')
+                        {
                             auxpart[cont] = mbr.particiones[j];
                             cont++;
                         }
                     }
                     //PARTICIONES ORDENADAS :D
-                    for (j = 0; j < totalparticiones; j++) {
-                        for (p = 0; p < totalparticiones - 1; p++) {
-                            if (auxpart[p].part_start > auxpart[p + 1].part_start) {
+                    for (j = 0; j < totalparticiones; j++)
+                    {
+                        for (p = 0; p < totalparticiones - 1; p++)
+                        {
+                            if (auxpart[p].part_start > auxpart[p + 1].part_start)
+                            {
                                 Particion aux = auxpart[p];
                                 auxpart[p] = auxpart[p + 1];
                                 auxpart[p + 1] = aux;
@@ -261,18 +275,24 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                         }
                     }
 
-                    if (existe == false) {
+                    if (existe == false)
+                    {
                         //SE PUEDE CREAR LA PARTICION NO HAY ERROR CON EL NOMBRE
                         int c;
-                        for (c = 1; c < (totalparticiones + 1); c++) {
-                            if (c == totalparticiones) {
+                        for (c = 1; c < (totalparticiones + 1); c++)
+                        {
+                            if (c == totalparticiones)
+                            {
                                 //ESTA SITUADO EN LA ULTIMA PARTICION
                                 espaciolibre = mbr.mbr_tamanio - (auxpart[c - 1].part_start + auxpart[c - 1].part_size); //SE LE RESTA EL TAMANIO TOTAL AL TAMANIO DE LA PARTICON ANTERIOR A LA NUEVA
-                                if (espaciolibre >= tamanoreal) {
+                                if (espaciolibre >= tamanoreal)
+                                {
                                     particion.part_start = (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
                                     int i;
-                                    for (i = 0; i < 4; i++) {
-                                        if (mbr.particiones[i].part_status == '0') {
+                                    for (i = 0; i < 4; i++)
+                                    {
+                                        if (mbr.particiones[i].part_status == '0')
+                                        {
                                             mbr.particiones[i] = particion;
                                             fseek(disco, 0L, SEEK_SET);
                                             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -283,14 +303,19 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                     }
 
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 //SI ESTA POSICINADO EN UNA PARTICION Y ADELANTE DE ELLA HAY OTRA SE CALCULA ESPACIO LIBRE
                                 espaciolibre = auxpart[c].part_start - (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
-                                if (espaciolibre >= tamanoreal) {
+                                if (espaciolibre >= tamanoreal)
+                                {
                                     particion.part_start = auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1;
                                     int i;
-                                    for (i = 0; i < 4; i++) {
-                                        if (mbr.particiones[i].part_status == '0') {
+                                    for (i = 0; i < 4; i++)
+                                    {
+                                        if (mbr.particiones[i].part_status == '0')
+                                        {
                                             mbr.particiones[i] = particion;
                                             fseek(disco, 0L, SEEK_SET);
                                             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -305,20 +330,28 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
 
                     }
                 }
-            } else {
+            }
+            else
+            {
                 printf("ESTE DISCO NO CUENTA CON ESPACIO PARA UNA PARTICION PRIMARIA HA ALCANZADO EL LIMETE DE 3 PRIMARIAS\n");
             }
-        }else if (tipo == 'E' || tipo == 'e') {
+        }
+        else if (tipo == 'E' || tipo == 'e')
+        {
             particion.part_type = tipo;
-            if (cantExtendidas == 0) {
-                if (totalparticiones == 0) {
+            if (cantExtendidas == 0)
+            {
+                if (totalparticiones == 0)
+                {
                     //EL DISCO ESTA TOTALMENTE VACIO
                     tamanodisponible = mbr.mbr_tamanio - (sizeof (MBR) + 1);
                     int i;
-                    if (mbr.particiones[0].part_status == '0') {
+                    if (mbr.particiones[0].part_status == '0')
+                    {
                         particion.part_start = sizeof (MBR) + 1;
                         particion.part_size = tamanoreal;
-                        if (tamanodisponible > tamanoreal) {
+                        if (tamanodisponible > tamanoreal)
+                        {
                             mbr.particiones[0] = particion;
                             fseek(disco, 0L, SEEK_SET);
                             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -332,13 +365,18 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                             fseek(disco, particion.part_start, SEEK_SET);
                             fwrite(&ebrprimero, sizeof (EBR), 1, disco);
                             printf("SE CREO LA PARTICION %s DE TIPO EXTENDIDA\n", nombre);
-                        } else {
+                        }
+                        else
+                        {
                             printf("NO HAY ESPACIO PARA CREAR LA PARTICION %s \n", nombre);
                         }
                     }
-                } else {
+                }
+                else
+                {
 
-                    if (existe == false) {
+                    if (existe == false)
+                    {
                         bool inserto = false;
                         //SE PUEDE CREAR LA PARTICION NO HAY ERROR CON EL NOMBRE
 
@@ -347,16 +385,21 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                         Particion auxpart[totalparticiones];
                         int j, p, cont = 0;
                         int espaciolibre;
-                        for (j = 0; j < 4; j++) {
-                            if (mbr.particiones[j].part_status == '1') {
+                        for (j = 0; j < 4; j++)
+                        {
+                            if (mbr.particiones[j].part_status == '1')
+                            {
                                 auxpart[cont] = mbr.particiones[j];
                                 cont++;
                             }
                         }
                         //PARTICIONES ORDENADAS :D
-                        for (j = 0; j < totalparticiones; j++) {
-                            for (p = 0; p < totalparticiones - 1; p++) {
-                                if (auxpart[p].part_start > auxpart[p + 1].part_start) {
+                        for (j = 0; j < totalparticiones; j++)
+                        {
+                            for (p = 0; p < totalparticiones - 1; p++)
+                            {
+                                if (auxpart[p].part_start > auxpart[p + 1].part_start)
+                                {
                                     Particion aux = auxpart[p];
                                     auxpart[p] = auxpart[p + 1];
                                     auxpart[p + 1] = aux;
@@ -364,15 +407,20 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                             }
                         }
                         int c;
-                        for (c = 1; c < (totalparticiones + 1); c++) {
-                            if (c == totalparticiones) {
+                        for (c = 1; c < (totalparticiones + 1); c++)
+                        {
+                            if (c == totalparticiones)
+                            {
                                 //ESTA SITUADO EN LA ULTIMA PARTICION
                                 espaciolibre = mbr.mbr_tamanio - (auxpart[c - 1].part_start + auxpart[c - 1].part_size); //SE LE RESTA EL TAMANIO TOTAL AL TAMANIO DE LA PARTICON ANTERIOR A LA NUEVA
-                                if (espaciolibre >= tamanoreal) {
+                                if (espaciolibre >= tamanoreal)
+                                {
                                     particion.part_start = (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
                                     int i;
-                                    for (i = 0; i < 4; i++) {
-                                        if (mbr.particiones[i].part_status == '0') {
+                                    for (i = 0; i < 4; i++)
+                                    {
+                                        if (mbr.particiones[i].part_status == '0')
+                                        {
                                             mbr.particiones[i] = particion;
                                             fseek(disco, 0L, SEEK_SET);
                                             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -391,17 +439,24 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                         }
                                     }
 
-                                } else {
+                                }
+                                else
+                                {
                                     printf("NO HAY ESPACIO PARA CREAR LA PARTICION %s \n", nombre);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 //SI ESTA POSICINADO EN UNA PARTICION Y ADELANTE DE ELLA HAY OTRA SE CALCULA ESPACIO LIBRE
                                 espaciolibre = auxpart[c].part_start - (auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1);
-                                if (espaciolibre >= tamanoreal) {
+                                if (espaciolibre >= tamanoreal)
+                                {
                                     particion.part_start = auxpart[c - 1].part_start + auxpart[c - 1].part_size + 1;
                                     int i;
-                                    for (i = 0; i < 4; i++) {
-                                        if (mbr.particiones[i].part_status == '0') {
+                                    for (i = 0; i < 4; i++)
+                                    {
+                                        if (mbr.particiones[i].part_status == '0')
+                                        {
                                             mbr.particiones[i] = particion;
                                             fseek(disco, 0L, SEEK_SET);
                                             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -425,23 +480,32 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
 
                     }
                 }
-            } else {
+            }
+            else
+            {
                 printf("ESTE DISCO NO CUENTA CON ESPACIO PARA ALMACENAR UNA PARTICION DE TIPO EXTENDIDA ALCANZO LIMITE DE 1 EXTENDIDA\n");
             }
 
-        }else if (tipo == 'L' || tipo == 'l') {
+        }
+        else if (tipo == 'L' || tipo == 'l')
+        {
             particion.part_type = tipo;
             EBR ebr;
             Particion extendaux;
-            if (cantExtendidas == 1) {
-                for (i = 0; i < 4; i++) {
-                    if (mbr.particiones[i].part_type == 'E' || mbr.particiones[i].part_type == 'e') {
+            if (cantExtendidas == 1)
+            {
+                for (i = 0; i < 4; i++)
+                {
+                    if (mbr.particiones[i].part_type == 'E' || mbr.particiones[i].part_type == 'e')
+                    {
                         extendaux = mbr.particiones[i];
                         break;
                     }
                 }
-                if (tamanoreal <= extendaux.part_size) {
-                    if (existe == false) {
+                if (tamanoreal <= extendaux.part_size)
+                {
+                    if (existe == false)
+                    {
                         //PARTICION QUE VA A SUSTITUIR
                         EBR veclogicas[50];
                         int logic = 0;
@@ -451,19 +515,25 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                         fseek(disco, extendaux.part_start, SEEK_SET);
                         fread(&ebr, sizeof (EBR), 1, disco);
                         j = 0;
-                        while (j < 50) {
-                            if (ebr.part_next == -1) {
-                                if (ebr.part_status == '1') {
+                        while (j < 50)
+                        {
+                            if (ebr.part_next == -1)
+                            {
+                                if (ebr.part_status == '1')
+                                {
                                     veclogicas[logic] = ebr;
                                     logic++;
                                 }
                                 break;
                             }
-                            if (ebr.part_status == '1') {
+                            if (ebr.part_status == '1')
+                            {
                                 veclogicas[logic] = ebr;
                                 logic++;
 
-                            } else if (ebr.part_status == '0' && ebr.part_start == extendaux.part_start) {
+                            }
+                            else if (ebr.part_status == '0' && ebr.part_start == extendaux.part_start)
+                            {
                                 //ES LA PRIMERA PARTICION PERO ESTA "ELIMINADA"
                                 veclogicas[logic] = ebr;
                                 logic++;
@@ -482,13 +552,16 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                         //SI LA PRIMERA PARTICION EXISTE PERO ESTA INACTIVA
                         fseek(disco, extendaux.part_start, SEEK_SET);
                         fread(&actual, sizeof (EBR), 1, disco);
-                        if (actual.part_status == '0' && actual.part_start == extendaux.part_start) {
+                        if (actual.part_status == '0' && actual.part_start == extendaux.part_start)
+                        {
                             EBR ebrprimero;
                             fseek(disco, extendaux.part_start, SEEK_SET);
                             fread(&actual, sizeof (EBR), 1, disco);
-                            if (actual.part_next == -1) {
+                            if (actual.part_next == -1)
+                            {
                                 //SOLO EXISTE LA LOGICA POR DEFAUL, TAMANIO DE LA EXT - TAML +SIZEEBR
-                                if (extendaux.part_size > (tamanoreal - sizeof (EBR))) {
+                                if (extendaux.part_size > (tamanoreal - sizeof (EBR)))
+                                {
                                     ebrprimero.part_fit = 'N';
                                     strcpy(ebrprimero.part_name, "N");
                                     ebrprimero.part_next = -1;
@@ -507,15 +580,20 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                     fwrite(&actual, sizeof (EBR), 1, disco);
                                     printf("SE CREO LA PARTICION  %s CORRECTAMENTE \n", nombre);
                                     inserto = true;
-                                } else {
+                                }
+                                else
+                                {
                                     printf("NO HAY ESPACIO PARA CREAR ESTA PARTICION\n");
                                 }
 
-                            } else if (actual.part_next != -1) {
+                            }
+                            else if (actual.part_next != -1)
+                            {
                                 EBR ver = veclogicas[logicas];
                                 //SI HAY ESPACIO EN MEDIO DE DOS PARTICIONES
                                 int espacio = actual.part_next - (actual.part_start + 1);
-                                if (espacio > tamanoreal - sizeof (EBR)) {
+                                if (espacio > tamanoreal - sizeof (EBR))
+                                {
                                     actual.part_fit = fit;
                                     strcpy(actual.part_name, nombre);
                                     actual.part_size = tamanoreal + sizeof (ebr);
@@ -532,13 +610,16 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
 
 
                         //SI ES LA PRIMER PARTICION
-                        if (logic == 0 && inserto == false) {
+                        if (logic == 0 && inserto == false)
+                        {
                             EBR ebrprimero;
                             fseek(disco, extendaux.part_start, SEEK_SET);
                             fread(&actual, sizeof (EBR), 1, disco);
-                            if (actual.part_next == -1) {
+                            if (actual.part_next == -1)
+                            {
                                 //SOLO EXISTE LA LOGICA POR DEFAUL, TAMANIO DE LA EXT - TAML +SIZEEBR
-                                if (extendaux.part_size > (tamanoreal - sizeof (EBR))) {
+                                if (extendaux.part_size > (tamanoreal - sizeof (EBR)))
+                                {
                                     ebrprimero.part_fit = 'N';
                                     strcpy(ebrprimero.part_name, "N");
                                     ebrprimero.part_next = -1;
@@ -557,25 +638,33 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                     fwrite(&actual, sizeof (EBR), 1, disco);
                                     printf("SE CREO LA PARTICION  %s CORRECTAMENTE \n", nombre);
                                     inserto = true;
-                                } else {
+                                }
+                                else
+                                {
                                     printf("NO HAY ESPACIO PARA CREAR ESTA PARTICION\n");
                                 }
 
                             }
 
-                        } else {
-                            while (logicas >= 0) {
+                        }
+                        else
+                        {
+                            while (logicas >= 0)
+                            {
 
 
                                 if (veclogicas[logicas].part_next != -1 && logic > 0)
                                     //CUANTO ADELANTE DE EL NO ESTA LA ULTIMA PARTICION
-                                    if (logic > 0 && logicas <= (logic - 1)) {
+                                    if (logic > 0 && logicas <= (logic - 1))
+                                    {
                                         actual = veclogicas[logicas];
                                         fseek(disco, actual.part_next, SEEK_SET);
                                         fread(&siguiente, sizeof (EBR), 1, disco);
                                         int libre = (actual.part_size + actual.part_start + 1) - siguiente.part_start;
-                                        if (libre > 0) {
-                                            if (libre > tamanoreal - sizeof (EBR)) {
+                                        if (libre > 0)
+                                        {
+                                            if (libre > tamanoreal - sizeof (EBR))
+                                            {
                                                 EBR ebrprimero;
                                                 ebrprimero.part_fit = fit;
                                                 strcpy(ebrprimero.part_name, nombre);
@@ -595,16 +684,21 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                                 break;
 
                                             }
-                                        } else {
+                                        }
+                                        else
+                                        {
                                             int limit = 0;
                                             int index = logicas;
-                                            while (limit <= logicas) {
+                                            while (limit <= logicas)
+                                            {
                                                 actual = veclogicas[limit];
                                                 fseek(disco, actual.part_next, SEEK_SET);
                                                 fread(&siguiente, sizeof (EBR), 1, disco);
-                                                if (libre > 0) {
+                                                if (libre > 0)
+                                                {
                                                     //SI HAY ESPACIO ENTRE PARTICIONES
-                                                    if (libre > tamanoreal - sizeof (EBR)) {
+                                                    if (libre > tamanoreal - sizeof (EBR))
+                                                    {
                                                         EBR ebrprimero;
                                                         ebrprimero.part_fit = fit;
                                                         strcpy(ebrprimero.part_name, nombre);
@@ -624,14 +718,19 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                                         break;
                                                     }
 
-                                                } else {
+                                                }
+                                                else
+                                                {
                                                     actual = siguiente;
-                                                    if (siguiente.part_next != -1) {
+                                                    if (siguiente.part_next != -1)
+                                                    {
                                                         fseek(disco, siguiente.part_next, SEEK_SET);
                                                         fread(&siguiente, sizeof (EBR), 1, disco);
                                                         libre = siguiente.part_start - (actual.part_size + actual.part_start + 1);
 
-                                                    } else {
+                                                    }
+                                                    else
+                                                    {
                                                         break;
                                                     }
 
@@ -639,9 +738,11 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                                 index--;
                                                 limit++;
                                             }
-                                            if (inserto == false) {
+                                            if (inserto == false)
+                                            {
                                                 int librefinal = (extendaux.part_size + extendaux.part_start) - (siguiente.part_start + sizeof (EBR));
-                                                if (librefinal > tamanoreal - sizeof (EBR)) {
+                                                if (librefinal > tamanoreal - sizeof (EBR))
+                                                {
                                                     EBR ebrprimero;
                                                     ebrprimero.part_fit = 'N';
                                                     strcpy(ebrprimero.part_name, "N");
@@ -660,7 +761,9 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                                     fwrite(&siguiente, sizeof (EBR), 1, disco);
                                                     printf("SE CREO LA PARTICION %s CORRECTAMENTE AL FINAL DEL DISCO \n", nombre);
                                                     break;
-                                                } else {
+                                                }
+                                                else
+                                                {
                                                     printf("NO EXISTE ESPACIO PARA ESTA PARTICION\n");
                                                     inserto = true;
                                                     break;
@@ -669,9 +772,12 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                                             }
                                         }
                                     }
-                                if (inserto == true) {
+                                if (inserto == true)
+                                {
                                     break;
-                                } else {
+                                }
+                                else
+                                {
                                     logicas--;
 
                                 }
@@ -680,22 +786,29 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
                         }
 
                     }
-                } else {
+                }
+                else
+                {
                     printf("TAMANO INCORRECTO ES MAS GRANDE EL TAMANO DE LA LOGICA \n");
                 }
-            } else {
+            }
+            else
+            {
                 printf("NO SE CUENTA CON UNA PARTICION EXTENDIDA PARA ALMACENAR LA PARTICION LOGICA\n");
             }
         }
 
         fclose(disco);
-    } else {
+    }
+    else
+    {
         printf("NO EXISTE EL DISCO\n");
     }
 
 }
 
-void fdisk(Comando cmd[]) {
+void fdisk(Comando cmd[])
+{
     bool error = false;
     bool unit = false;
     bool type = false;
@@ -730,38 +843,52 @@ void fdisk(Comando cmd[]) {
     limpiarvariables(fitt, 5);
     int i = 0;
 
-    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
-        if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0) {
+    while (strcasecmp(cmd[i].comando, "vacio") != 0)
+    {
+        if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0)
+        {
             name = true;
             strcpy(nombre, cmd[i + 1].comando);
             //printf("EL NOMBRE DE LA PARTICION SERA:%s\n", nombre);
 
-            if(nombre[0]=='\"'){
+            if(nombre[0]=='\"')
+            {
                 int cantidad = contarcaracteres(nombre);
-                if(nombre[cantidad-1]=='\"'){
+                if(nombre[cantidad-1]=='\"')
+                {
                     /**********QUITNADO LAS COMILLAS************/
                     limpiarvariables(auxnombre, 100);
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (nombre[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (nombre[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxnombre[cont] = nombre[l];
                             cont++;
                         }
                     }
                     printf("EL NOMBRE DEL DISCO ES:%s\n", auxnombre);
-                }else{
+                }
+                else
+                {
                     //TIENE ESPACIOS EN BLANCO
                     int a;
                     //CONCATENANDO TODA LA PATH COMPLETA
-                    for (a = i + 2; a < 25; a++) {
+                    for (a = i + 2; a < 25; a++)
+                    {
                         int b = contarcaracteres(auxnombre);
-                        if (auxnombre[b - 1] != '\"') {
+                        if (auxnombre[b - 1] != '\"')
+                        {
                             strcat(nombre, " ");
                             strcat(nombre, auxnombre);
-                        } else {
+                        }
+                        else
+                        {
                             strcat(nombre, " ");
                             strcat(nombre, auxnombre);
                             a = 25;
@@ -771,136 +898,201 @@ void fdisk(Comando cmd[]) {
                     limpiarvariables(auxnombre, 100);
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (nombre[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (nombre[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxnombre[cont] = nombre[l];
                             cont++;
                         }
                     }
                     printf("EL NOMBRE DE LA PARTICION SERA:%s\n", auxnombre);
                 }
-            }else{
+            }
+            else
+            {
                 strcpy(auxnombre,nombre);
             }
-        } else if (strcasecmp(cmd[i].comando, "unit") == 0 || strcasecmp(cmd[i].comando, "+unit") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "unit") == 0 || strcasecmp(cmd[i].comando, "+unit") == 0)
+        {
             unit = true;
             strcpy(unidad, cmd[i + 1].comando);
             existeunidad = true;
             printf("LA UNIDAD DEL DISCO SERA:%s\n", unidad);
-            if (strcasecmp(unidad, "k") == 0) {
+            if (strcasecmp(unidad, "k") == 0)
+            {
                 uni = 'K';
-            } else if (strcasecmp(unidad, "m") == 0) {
+            }
+            else if (strcasecmp(unidad, "m") == 0)
+            {
                 uni = 'M';
-            } else if (strcasecmp(unidad, "b") == 0) {
+            }
+            else if (strcasecmp(unidad, "b") == 0)
+            {
                 uni = 'B';
-            } else {
+            }
+            else
+            {
                 printf("ERROR LA UNIDAD ES %s INCORRECTA SOLO ADMITE [M|B|K]\n", unidad);
                 error = true;
             }
-        } else if (strcasecmp(cmd[i].comando, "type") == 0 || strcasecmp(cmd[i].comando, "+type") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "type") == 0 || strcasecmp(cmd[i].comando, "+type") == 0)
+        {
             type = true;
             strcpy(tipo, cmd[i + 1].comando);
             printf("EL TIPO DE PARTICION SERA:%s\n", tipo);
-            if (strcasecmp(tipo, "p") == 0) {
+            if (strcasecmp(tipo, "p") == 0)
+            {
                 typec = 'P';
-            } else if (strcasecmp(tipo, "l") == 0) {
+            }
+            else if (strcasecmp(tipo, "l") == 0)
+            {
                 typec = 'L';
-            } else if (strcasecmp(tipo, "e") == 0) {
+            }
+            else if (strcasecmp(tipo, "e") == 0)
+            {
                 typec = 'E';
-            } else {
+            }
+            else
+            {
                 error = true;
                 printf("TIPO DE PARTICION NO VALIDA\n");
             }
-        } else if (strcasecmp(cmd[i].comando, "fit") == 0 || strcasecmp(cmd[i].comando, "+fit") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "fit") == 0 || strcasecmp(cmd[i].comando, "+fit") == 0)
+        {
             fit = true;
             strcpy(fitt, cmd[i + 1].comando);
             printf("EL NOMBRE DE LA PARTICION SERA:%s\n", fitt);
-            if (strcasecmp(fitt, "w") == 0 || strcasecmp(fitt, "wf") == 0) {
+            if (strcasecmp(fitt, "w") == 0 || strcasecmp(fitt, "wf") == 0)
+            {
                 adjust = 'W';
-            } else if (strcasecmp(fitt, "b") == 0 || strcasecmp(fitt, "bf") == 0) {
+            }
+            else if (strcasecmp(fitt, "b") == 0 || strcasecmp(fitt, "bf") == 0)
+            {
                 adjust = 'B';
-            } else if (strcasecmp(fitt, "f") == 0 || strcasecmp(fitt, "ff") == 0) {
+            }
+            else if (strcasecmp(fitt, "f") == 0 || strcasecmp(fitt, "ff") == 0)
+            {
                 adjust = 'F';
-            } else {
+            }
+            else
+            {
                 printf("ERROR EL AJUSTE %s NO ES VALIDO [B-W-F]\n", fitt);
                 error = true;
             }
-        } else if (strcasecmp(cmd[i].comando, "delete") == 0 || strcasecmp(cmd[i].comando, "+delete") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "delete") == 0 || strcasecmp(cmd[i].comando, "+delete") == 0)
+        {
             delete = true;
             strcpy(deletee, cmd[i + 1].comando);
             printf("LA PARTICION A ELIMINAR SERA:%s\n", deletee);
-        } else if (strcasecmp(cmd[i].comando, "add") == 0 || strcasecmp(cmd[i].comando, "+add") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "add") == 0 || strcasecmp(cmd[i].comando, "+add") == 0)
+        {
             add = true;
             agregar = atoi(cmd[i + 1].comando);
             printf("EL ESPACIO A AGREGAR SERA:%d\n", agregar);
-        } else if (strcasecmp(cmd[i].comando, "size") == 0 || strcasecmp(cmd[i].comando, "-size") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "size") == 0 || strcasecmp(cmd[i].comando, "-size") == 0)
+        {
             tamanio = atoi(cmd[i + 1].comando);
-            if (tamanio > 0) {
+            if (tamanio > 0)
+            {
                 size = true;
                 printf("EL TAMANIO DE LA PARTICION SERA:%d\n", tamanio);
-            } else {
+            }
+            else
+            {
                 error = true;
                 printf("NO SE ADMITE VALORES NEGATIVOS\n");
             }
-        } else if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0)
+        {
             path = true;
             strcpy(pat, cmd[i + 1].comando);
             //printf("LA PATH DEL DISCO SERA: %s \n", pat);
             limpiarvariables(auxpath, 100);
-            if (pat[0] == '\"') {
+            if (pat[0] == '\"')
+            {
                 int cantidad = contarcaracteres(pat);
-                if(pat[cantidad-1]=='\"'){
+                if(pat[cantidad-1]=='\"')
+                {
                     /**********QUITNADO LAS COMILLAS************/
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (pat[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (pat[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxpath[cont] = pat[l];
                             cont++;
                         }
                     }
                     printf("LA PATH DEL DISCO ES:%s\n", auxpath);
-                }else{
+                }
+                else
+                {
                     int a;
-                //CONCATENANDO TODA LA PATH COMPLETA
-                for (a = i + 2; a < 25; a++) {
-                    strcpy(auxpath, cmd[a].comando);
-                    int b = contarcaracteres(auxpath);
-                    if (auxpath[b - 1] != '\"') {
-                        if (strcasecmp(auxpath, "vacio") == 0) {
-                            a = 25;
-                        } else {
+                    //CONCATENANDO TODA LA PATH COMPLETA
+                    for (a = i + 2; a < 25; a++)
+                    {
+                        strcpy(auxpath, cmd[a].comando);
+                        int b = contarcaracteres(auxpath);
+                        if (auxpath[b - 1] != '\"')
+                        {
+                            if (strcasecmp(auxpath, "vacio") == 0)
+                            {
+                                a = 25;
+                            }
+                            else
+                            {
+                                strcat(pat, " ");
+                                strcat(pat, auxpath);
+                            }
+                        }
+                        else
+                        {
                             strcat(pat, " ");
                             strcat(pat, auxpath);
+                            a = 25;
                         }
-                    } else {
-                        strcat(pat, " ");
-                        strcat(pat, auxpath);
-                        a = 25;
                     }
-                }
-                /**********QUITNADO LAS COMILLAS************/
-                limpiarvariables(auxpath, 100);
-                int l;
-                int cont = 0;
-                for (l = 1; l < 100; l++) {
-                    if (pat[l] == '\"') {
-                        l = 100;
-                    } else {
-                        auxpath[cont] = pat[l];
-                        cont++;
+                    /**********QUITNADO LAS COMILLAS************/
+                    limpiarvariables(auxpath, 100);
+                    int l;
+                    int cont = 0;
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (pat[l] == '\"')
+                        {
+                            l = 100;
+                        }
+                        else
+                        {
+                            auxpath[cont] = pat[l];
+                            cont++;
+                        }
                     }
-                }
-                printf("LA PATH DEL DISCO ES:%s\n", auxpath);
+                    printf("LA PATH DEL DISCO ES:%s\n", auxpath);
                 }
 
-            } else {
+            }
+            else
+            {
                 strcpy(auxpath, pat);
-                 printf("LA PATH DEL DISCO ES:%s\n", auxpath);
+                printf("LA PATH DEL DISCO ES:%s\n", auxpath);
 
             }
         }
@@ -909,10 +1101,12 @@ void fdisk(Comando cmd[]) {
 
     /*********************CREANDO PARTICIONES*************/
 
-    if (size == true && path == true && name == true && error == false && ejecuto == false) {
+    if (size == true && path == true && name == true && error == false && ejecuto == false)
+    {
         ejecuto = true;
         int tamanoreal;
-        if (existeunidad == false) {
+        if (existeunidad == false)
+        {
             uni = 'K';
         }
         FILE * archivo;
@@ -923,46 +1117,73 @@ void fdisk(Comando cmd[]) {
         char * cadena = ("\"%s\"", auxpath);
         archivo = fopen(cadena, "rb+");
         MBR * mb = malloc(sizeof (MBR));
-        if (archivo != NULL) {
-            if ((comienzo = ftell(archivo)) < 0) {
+        if (archivo != NULL)
+        {
+            if ((comienzo = ftell(archivo)) < 0)
+            {
                 printf("ERROR: ftell no ha funcionado\n");
-            } else {
-                    if (type == false) {
-                        typec = 'P';
-                    }
-                    if (fit == false) {
-                        adjust = 'W';
-                    }
-                    if (unit == false) {
-                        uni = 'K';
+            }
+            else
+            {
+                if (type == false)
+                {
+                    typec = 'P';
+                }
+                if (fit == false)
+                {
+                    adjust = 'W';
+                }
+                if (unit == false)
+                {
+                    uni = 'K';
+                    tamanoreal = tamanio * 1024;
+                }
+                else
+                {
+                    if (uni == 'K' || uni == 'k')
+                    {
                         tamanoreal = tamanio * 1024;
-                    } else {
-                        if (uni == 'K' || uni == 'k') {
-                            tamanoreal = tamanio * 1024;
-                        } else if (uni == 'B' || uni == 'b') {
-                            tamanoreal = tamanio;
-                        } else if (uni == 'M' || uni == 'm') {
-                            tamanoreal = (tamanio * 1024)*1024;
-                        }
+                    }
+                    else if (uni == 'B' || uni == 'b')
+                    {
+                        tamanoreal = tamanio;
+                    }
+                    else if (uni == 'M' || uni == 'm')
+                    {
+                        tamanoreal = (tamanio * 1024)*1024;
+                    }
 
-                    }
-                    if(tamanoreal>=(2*1024*1024)){
+                }
+                if(tamanoreal>=(2*1024*1024))
+                {
                     crearParticion(cadena, tamanoreal, auxnombre, typec, adjust);
-                    }else{
-                        printf("ERROR DE TAMANIO, TIENE QUE TENER POR LO MENOS 2 MB\n");
-                    }
+                }
+                else
+                {
+                    printf("ERROR DE TAMANIO, TIENE QUE TENER POR LO MENOS 2 MB\n");
+                }
 
             }
-        }else{
+        }
+        else
+        {
             printf("ERROR EL DISCO NO EXISTE\n");
         }
-    } else {
-        if (delete == true && name == true && path == true && error == false) {
+    }
+    else
+    {
+        if (delete == true && name == true && path == true && error == false)
+        {
 
-        } else {
-            if (path == true && name == true && add == true && error == false) {
+        }
+        else
+        {
+            if (path == true && name == true && add == true && error == false)
+            {
 
-            } else {
+            }
+            else
+            {
                 printf("FALTA PARAMETRO SIZE, PATH O NAME - IMPOSIBLE CREAR PARTICION\n");
 
             }
@@ -971,14 +1192,21 @@ void fdisk(Comando cmd[]) {
 
 
     /************************ELIMINAR PARTICION***********************************/
-    if (ejecuto == false) {
-        if (delete == true && name == true && path == true && error == false) {
+    if (ejecuto == false)
+    {
+        if (delete == true && name == true && path == true && error == false)
+        {
             //METODO PARA ELIMINAR PARTICINES
             ejecuto = true;
-        } else {
-            if (path == true && name == true && add == true && error == false) {
+        }
+        else
+        {
+            if (path == true && name == true && add == true && error == false)
+            {
 
-            } else {
+            }
+            else
+            {
                 printf("IMPOSIBLE ELIMINAR LA PARTICION FALTA PARAMETRO PATH, DELETE O NOMBRE DE LA PARTICION\n");
 
             }
@@ -986,31 +1214,379 @@ void fdisk(Comando cmd[]) {
         }
     }
     /**************************AGREGAR ESPACIO************************************/
-    if (ejecuto == false) {
-        if (path == true && name == true && add == true && error == false) {
+    if (ejecuto == false)
+    {
+        if (path == true && name == true && add == true && error == false)
+        {
             int valorreal;
-            if (unit == false) {
+            if (unit == false)
+            {
                 uni = 'K';
                 valorreal = agregar * 1024;
-            } else {
+            }
+            else
+            {
 
-                if (uni == 'b' || uni == 'B') {
+                if (uni == 'b' || uni == 'B')
+                {
                     valorreal = agregar;
-                } else if (uni == 'm' || uni == 'M') {
+                }
+                else if (uni == 'm' || uni == 'M')
+                {
                     valorreal = (agregar * 1024)*1024;
-                } else if (uni == 'k' || uni == 'K') {
+                }
+                else if (uni == 'k' || uni == 'K')
+                {
                     valorreal = (agregar * 1024);
                 }
             }
-          //METODO PARA AGREGAR ESPACIO
-        } else {
+            //METODO PARA AGREGAR ESPACIO
+        }
+        else
+        {
             printf("ERROR FALTA PARAMETRO [NAME-PATH-ADD]\n");
         }
     }
 
 }
 
-void Mkdisk(Comando cmd[]) {
+
+bool yafuemontado(char path[], char nombre[])
+{
+    int k;
+    for (k = 0; k < 100; k++)
+    {
+        if (strcasecmp(YAmontados[k].nombreParticion, nombre) == 0 && strcasecmp(YAmontados[k].parametros.path, path) == 0)
+        {
+            limpiarvariables(IDA, 6);
+            strcpy(IDA, YAmontados[k].id);
+            return true;
+        }
+    }
+    return false;
+}
+
+void mount(Comando cmd[])
+{
+    bool name = false;
+    bool pat = false;
+    char auxpath[100];
+    char path[100];
+    char nombre[25];
+    limpiarvariables(auxpath, 100);
+    limpiarvariables(path, 100);
+    limpiarvariables(nombre, 25);
+    int i = 0;
+    while (strcasecmp(cmd[i].comando, "vacio") != 0)
+    {
+        if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0)
+        {
+            pat = true;
+            strcpy(path, cmd[i + 1].comando);
+            printf("LA PATH DEL DISCO SERA: %s \n", path);
+            limpiarvariables(auxpath, 100);
+            if (path[0] == '\"')
+            {
+                int a;
+                //CONCATENANDO TODA LA PATH COMPLETA
+                for (a = i + 2; a < 25; a++)
+                {
+                    strcpy(auxpath, cmd[a].comando);
+                    int b = contarcaracteres(auxpath);
+                    if (auxpath[b - 1] != '\"')
+                    {
+                        if (strcasecmp(auxpath, "vacio") == 0)
+                        {
+                            a = 25;
+                        }
+                        else
+                        {
+                            strcat(path, " ");
+                            strcat(path, auxpath);
+                        }
+                    }
+                    else
+                    {
+                        strcat(path, " ");
+                        strcat(path, auxpath);
+                        a = 25;
+                        //limpiarvariables(auxpath, 100);
+                    }
+                }
+                /**********QUITNADO LAS COMILLAS************/
+                limpiarvariables(auxpath, 100);
+                int l;
+                int cont = 0;
+                for (l = 1; l < 100; l++)
+                {
+                    if (path[l] == '\"')
+                    {
+                        l = 100;
+                    }
+                    else
+                    {
+                        auxpath[cont] = path[l];
+                        cont++;
+                    }
+                }
+                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
+            }
+            else
+            {
+                strcpy(auxpath, path);
+            }
+        }
+        else if (strcasecmp(cmd[i].comando, "name") == 0 || strcasecmp(cmd[i].comando, "-name") == 0)
+        {
+            name = true;
+            strcpy(nombre, cmd[i + 1].comando);
+            printf("EL NOMBRE PARA MONTAR SERA:%s\n", nombre);
+        }
+        i++;
+    }
+    if (name == true && pat == true)
+    {
+        FILE * ar;
+        MBR mb;
+        ar = fopen(auxpath, "rb+");
+        bool montado = false;
+        if (ar != NULL)
+        {
+            bool encontro = false;
+            fseek(ar, 0L, SEEK_SET);
+            fread(&mb, sizeof (MBR), 1, ar);
+            int j;
+            for (j = 0; j < 4; j++)
+            {
+                if (strcmp(mb.particiones[j].part_name, nombre) == 0)
+                {
+                    char str[10];
+                    limpiarvariables(str, 10);
+                    int k;
+                    //CANTIDAD DE DISCOS CON UN MAXIMO DE 25 DISCOS
+                    if (yafuemontado(auxpath, nombre) == true)
+                    {
+                        printf("LA PARTICION %s YA FUE MONTADO CON EL ID %s \n", nombre, IDA);
+                        montado = true;
+                        encontro = true;
+                        j = 4;
+                    }
+                    else
+                    {
+                        for (k = 0; k < 25; k++)
+                        {
+                            if (strcmp(Mounts[k].path, auxpath) == 0)
+                            {
+                                //COMPROBANDO EN QUE POSICION ESTA VACIA
+                                int y;
+                                int val;
+                                //CANTIDAD DE ID DE UN MISMO DISCO
+                                for (y = 0; y < 100; y++)
+                                {
+                                    if (Mounts[k].vda[y].ocupado == false)
+                                    {
+                                        val = Mounts[k].vda[y].aparicion;
+                                        Mounts[k].vda[y].ocupado = true;
+                                        y = 100;
+                                    }
+                                }
+                                char id [10];
+                                limpiarvariables(id, 10);
+                                strcpy(id, "vd");
+                                id[2] = letra[k];
+                                sprintf(str, "%d", val);
+                                strcat(id, str);
+                                //strcpy(id,Mounts[k].aparicion);
+                                printf("EL ID A CREAR ES:%s\n", id);
+                                strcpy(YAmontados[cuantosmontados].id, id);
+                                YAmontados[cuantosmontados].iniciopart = mb.particiones[j].part_start;
+                                YAmontados[cuantosmontados].tamanio = mb.particiones[j].part_size;
+                                strcpy(YAmontados[cuantosmontados].nombreParticion, nombre);
+                                YAmontados[cuantosmontados].parametros = Mounts[k];
+                                cuantosmontados++;
+                                encontro = true;
+                                k = 25;
+                                montado = true;
+                                j = 4;
+                            }
+                        }
+                        if (encontro == false)
+                        {
+                            for (k = 0; k < 25; k++)
+                            {
+                                if (strcasecmp(Mounts[k].path, "vacio") == 0)
+                                {
+                                    Mounts[k].vda[0].ocupado = true;
+                                    strcpy(Mounts[k].path, auxpath);
+                                    char id [10];
+                                    limpiarvariables(id, 10);
+                                    strcat(id, "vd");
+                                    id[2] = letra[k];
+                                    sprintf(str, "%d", Mounts[k].vda[0].aparicion);
+                                    strcat(id, str);
+                                    printf("EL ID A CREAR ES:%s\n", id);
+                                    strcpy(YAmontados[cuantosmontados].id, id);
+                                    YAmontados[cuantosmontados].iniciopart = mb.particiones[j].part_start;
+                                    YAmontados[cuantosmontados].tamanio = mb.particiones[j].part_size;
+                                    strcpy(YAmontados[cuantosmontados].nombreParticion, nombre);
+                                    YAmontados[cuantosmontados].parametros = Mounts[k];
+                                    cuantosmontados++;
+                                    k = 25;
+                                    encontro = true;
+                                    montado = true;
+                                    j = 4;
+                                }
+                            }
+                        }
+                    }
+
+                }
+                else if (mb.particiones[j].part_type == 'E' || mb.particiones[j].part_type == 'e')
+                {
+                    if (yafuemontado(auxpath, nombre) == true)
+                    {
+                        printf("LA PARTICION %s YA FUE MONTADO CON EL ID %s \n", nombre, IDA);
+                        montado = true;
+                        encontro = true;
+                        j = 4;
+                    }
+                    if (encontro == false)
+                    {
+                        EBR auxnombres;
+                        int fin = mb.particiones[j].part_size + mb.particiones[j].part_start;
+                        bool ultima = false;
+                        for (i = mb.particiones[j].part_start; i < fin + 1 && ultima == false; i++)
+                        {
+                            fseek(ar, i, SEEK_SET);
+                            fread(&auxnombres, sizeof (EBR), 1, ar);
+                            if (strcasecmp(auxnombres.part_name, nombre) == 0)
+                            {
+                                char str[10];
+                                limpiarvariables(str, 10);
+                                int k;
+                                //CANTIDAD DE DISCOS CON UN MAXIMO DE 25 DISCOS
+                                if (yafuemontado(auxpath, nombre) == true)
+                                {
+                                    printf("La particion %s ya fue montada con el id %s \n", nombre, IDA);
+                                }
+                                else
+                                {
+                                    for (k = 0; k < 25; k++)
+                                    {
+                                        if (strcmp(Mounts[k].path, auxpath) == 0)
+                                        {
+                                            //COMPROBANDO EN QUE POSICION ESTA VACIA
+                                            int y;
+                                            int val;
+                                            //CANTIDAD DE ID DE UN MISMO DISCO
+                                            for (y = 0; y < 100; y++)
+                                            {
+                                                if (Mounts[k].vda[y].ocupado == false)
+                                                {
+                                                    val = Mounts[k].vda[y].aparicion;
+                                                    Mounts[k].vda[y].ocupado = true;
+                                                    y = 100;
+                                                }
+                                            }
+                                            char id [10];
+                                            limpiarvariables(id, 10);
+                                            strcpy(id, "vd");
+                                            id[2] = letra[k];
+                                            sprintf(str, "%d", val);
+                                            strcat(id, str);
+                                            //strcpy(id,Mounts[k].aparicion);
+                                            printf("EL ID A CREAR ES:%s\n", id);
+                                            strcpy(YAmontados[cuantosmontados].id, id);
+                                            strcpy(YAmontados[cuantosmontados].nombreParticion, nombre);
+                                            YAmontados[cuantosmontados].iniciopart = mb.particiones[j].part_start;
+                                            YAmontados[cuantosmontados].tamanio = mb.particiones[j].part_size;
+
+                                            YAmontados[cuantosmontados].parametros = Mounts[k];
+                                            cuantosmontados++;
+                                            encontro = true;
+                                            k = 25;
+                                            montado = true;
+                                            j = 4;
+                                        }
+                                    }
+                                    if (encontro == false)
+                                    {
+                                        for (k = 0; k < 25; k++)
+                                        {
+                                            if (strcasecmp(Mounts[k].path, "vacio") == 0)
+                                            {
+                                                Mounts[k].vda[0].ocupado = true;
+                                                strcpy(Mounts[k].path, auxpath);
+                                                char id [10];
+                                                limpiarvariables(id, 10);
+                                                strcat(id, "vd");
+                                                id[2] = letra[k];
+                                                sprintf(str, "%d", Mounts[k].vda[0].aparicion);
+                                                strcat(id, str);
+                                                printf("EL ID A CREAR ES:%s\n", id);
+                                                strcpy(YAmontados[cuantosmontados].id, id);
+                                                strcpy(YAmontados[cuantosmontados].nombreParticion, nombre);
+                                                YAmontados[cuantosmontados].iniciopart = mb.particiones[j].part_start;
+                                                YAmontados[cuantosmontados].tamanio = mb.particiones[j].part_size;
+
+                                                YAmontados[cuantosmontados].parametros = Mounts[k];
+                                                cuantosmontados++;
+                                                k = 25;
+                                                montado = true;
+                                                encontro = true;
+                                                j = 4;
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+                            if (auxnombres.part_next == -1)
+                            {
+                                ultima = true;
+                            }
+                            i = auxnombres.part_next - 1; //Se mueve i hasta donde termina la particion para leer otro bloque
+                        }
+                    }
+
+                }
+
+            }
+            if (montado == false && encontro == false)
+            {
+                printf("LA PARTICION %s NO EXISTE EN EL DISCO\n", nombre);
+            }
+
+
+        }
+        else
+        {
+            printf("NO EXISTE LA RUTA DEL ARCHIVO\n");
+        }
+    }
+    else if (pat == false && name == false)
+    {
+        //printf("ERROR NO SE ENCONTRO LOS PARAMETROS [PATH-NAME]\n");
+        int i;
+        for (i = 0; i < 100; i++)
+        {
+            if (strcasecmp(YAmontados[i].id, "vacio") == 0 && strcasecmp(YAmontados[i].parametros.path, "vacio") == 0)
+            {
+            }
+            else
+            {
+                printf("#id:%s -path:%s -name:%s\n", YAmontados[i].id, YAmontados[i].parametros.path, YAmontados[i].nombreParticion);
+            }
+        }
+    }
+    else
+    {
+        printf("ERROR NO SE ENCONTRO LOS PARAMETROS [PATH-NAME]\n");
+    }
+}
+
+void Mkdisk(Comando cmd[])
+{
     bool size = false;
     bool unit = false;
     bool path = false;
@@ -1030,121 +1606,168 @@ void Mkdisk(Comando cmd[]) {
     limpiarvariables(uni, 2);
     limpiarvariables(nombre, 25);
     int i = 0;
-    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
-        if (strcasecmp(cmd[i].comando, "size") == 0 || strcasecmp(cmd[i].comando, "-size") == 0) {
+    while (strcasecmp(cmd[i].comando, "vacio") != 0)
+    {
+        if (strcasecmp(cmd[i].comando, "size") == 0 || strcasecmp(cmd[i].comando, "-size") == 0)
+        {
             size = true;
             tamanio = atoi(cmd[i + 1].comando);
-            if (tamanio > 0) {
+            if (tamanio > 0)
+            {
                 printf("EL TAMANIO DEL DISCO SERA %d\n",tamanio);
-            } else {
+            }
+            else
+            {
                 error = true;
                 e = i;
                 printf("ERROR! SOLO VALORES POSIVITOS MAYORES QUE 0\n");
                 i = 20;
             }
-        } else if (strcasecmp(cmd[i].comando, "unit") == 0 || strcasecmp(cmd[i].comando, "+unit") == 0) {
+        }
+        else if (strcasecmp(cmd[i].comando, "unit") == 0 || strcasecmp(cmd[i].comando, "+unit") == 0)
+        {
             unit = true;
             strcpy(uni, cmd[i + 1].comando);
             printf("LA UNIDAD DEL DISCO SERA:%s\n", uni);
             opcional = false;
-            if (strcasecmp(uni, "k") == 0 || strcasecmp(uni, "m") == 0) {
+            if (strcasecmp(uni, "k") == 0 || strcasecmp(uni, "m") == 0)
+            {
                 //PARAMETROS CORRECTOS
-            } else {
+            }
+            else
+            {
                 printf("ERROR! UNIDAD NO VALIDA\n");
                 error = true;
                 e = i;
                 i = 20;
             }
-        } else if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
-                   path = true;
+        }
+        else if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0)
+        {
+            path = true;
             strcpy(pat, cmd[i + 1].comando);
             //printf("LA PATH DEL DISCO SERA: %s \n", pat);
             limpiarvariables(auxpath, 100);
-            if (pat[0] == '\"') {
+            if (pat[0] == '\"')
+            {
                 int cantidad = contarcaracteres(pat);
-                if(pat[cantidad-1]=='\"'){
+                if(pat[cantidad-1]=='\"')
+                {
                     /**********QUITNADO LAS COMILLAS************/
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (pat[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (pat[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxpath[cont] = pat[l];
                             cont++;
                         }
                     }
                     printf("EL NOMBRE DEL DISCO ES:%s\n", auxpath);
-                }else{
+                }
+                else
+                {
                     int a;
-                //CONCATENANDO TODA LA PATH COMPLETA
-                for (a = i + 2; a < 25; a++) {
-                    strcpy(auxpath, cmd[a].comando);
-                    int b = contarcaracteres(auxpath);
-                    if (auxpath[b - 1] != '\"') {
-                        if (strcasecmp(auxpath, "vacio") == 0) {
-                            a = 25;
-                        } else {
+                    //CONCATENANDO TODA LA PATH COMPLETA
+                    for (a = i + 2; a < 25; a++)
+                    {
+                        strcpy(auxpath, cmd[a].comando);
+                        int b = contarcaracteres(auxpath);
+                        if (auxpath[b - 1] != '\"')
+                        {
+                            if (strcasecmp(auxpath, "vacio") == 0)
+                            {
+                                a = 25;
+                            }
+                            else
+                            {
+                                strcat(pat, " ");
+                                strcat(pat, auxpath);
+                            }
+                        }
+                        else
+                        {
                             strcat(pat, " ");
                             strcat(pat, auxpath);
+                            a = 25;
                         }
-                    } else {
-                        strcat(pat, " ");
-                        strcat(pat, auxpath);
-                        a = 25;
                     }
-                }
-                /**********QUITNADO LAS COMILLAS************/
-                limpiarvariables(auxpath, 100);
-                int l;
-                int cont = 0;
-                for (l = 1; l < 100; l++) {
-                    if (pat[l] == '\"') {
-                        l = 100;
-                    } else {
-                        auxpath[cont] = pat[l];
-                        cont++;
+                    /**********QUITNADO LAS COMILLAS************/
+                    limpiarvariables(auxpath, 100);
+                    int l;
+                    int cont = 0;
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (pat[l] == '\"')
+                        {
+                            l = 100;
+                        }
+                        else
+                        {
+                            auxpath[cont] = pat[l];
+                            cont++;
+                        }
                     }
+                    printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
                 }
-                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
-                }
-
-            } else {
-                strcpy(auxpath, pat);
-                 printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
 
             }
-        } else if (strcasecmp(cmd[i].comando, "-name") == 0) {
-          //  char auxnombre[25];
+            else
+            {
+                strcpy(auxpath, pat);
+                printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
+
+            }
+        }
+        else if (strcasecmp(cmd[i].comando, "-name") == 0)
+        {
+            //  char auxnombre[25];
             //limpiarvariables(nombre, 25);
             strcpy(nombre, cmd[i + 1].comando);
 
-            if(nombre[0]=='\"'){
+            if(nombre[0]=='\"')
+            {
                 int cantidad = contarcaracteres(nombre);
-                if(nombre[cantidad-1]=='\"'){
+                if(nombre[cantidad-1]=='\"')
+                {
                     /**********QUITNADO LAS COMILLAS************/
                     limpiarvariables(auxnombre, 100);
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (nombre[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (nombre[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxnombre[cont] = nombre[l];
                             cont++;
                         }
                     }
                     printf("EL NOMBRE DEL ARCHIVO SERA:%s\n", auxnombre);
-                }else{
+                }
+                else
+                {
                     //TIENE ESPACIOS EN BLANCO
                     int a;
                     //CONCATENANDO TODA LA PATH COMPLETA
-                    for (a = i + 2; a < 25; a++) {
+                    for (a = i + 2; a < 25; a++)
+                    {
                         int b = contarcaracteres(auxnombre);
-                        if (auxnombre[b - 1] != '\"') {
+                        if (auxnombre[b - 1] != '\"')
+                        {
                             strcat(nombre, " ");
                             strcat(nombre, auxnombre);
-                        } else {
+                        }
+                        else
+                        {
                             strcat(nombre, " ");
                             strcat(nombre, auxnombre);
                             a = 25;
@@ -1154,36 +1777,45 @@ void Mkdisk(Comando cmd[]) {
                     limpiarvariables(auxnombre, 100);
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (nombre[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (nombre[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxnombre[cont] = nombre[l];
                             cont++;
                         }
                     }
                     printf("EL NOMBRE DEL ARCHIVO SERA:%s\n", auxnombre);
                 }
-            }else {
-                    strcpy(auxnombre, nombre);
-                              printf("EL NOMBRE DEL ARCHIVO SERA:%s\n", auxnombre);
+            }
+            else
+            {
+                strcpy(auxnombre, nombre);
+                printf("EL NOMBRE DEL ARCHIVO SERA:%s\n", auxnombre);
 
-                }
+            }
 
-                char* token;
-                char auxvalidar [100];
-                strcpy(auxvalidar,auxnombre);
+            char* token;
+            char auxvalidar [100];
+            strcpy(auxvalidar,auxnombre);
             token = strtok(auxvalidar, ".");
             bool encontropunto = false;
-            while (token != NULL) {
-                if (strcasecmp(token, "dsk") == 0) {
+            while (token != NULL)
+            {
+                if (strcasecmp(token, "dsk") == 0)
+                {
                     encontropunto = true;
                     name = true;
                 }
                 token = strtok(NULL, ".");
             }
-                         if(encontropunto==false){
-   printf("ERROR!!! EL DISCO PARA CREAR NO CUENTA CON UNA EXTENSION ACEPTABLE\n");
+            if(encontropunto==false)
+            {
+                printf("ERROR!!! EL DISCO PARA CREAR NO CUENTA CON UNA EXTENSION ACEPTABLE\n");
                 error = true;
                 e = i;
                 i = 20;
@@ -1194,33 +1826,45 @@ void Mkdisk(Comando cmd[]) {
         }
         i++;
     }
-    if (opcional == true) {
+    if (opcional == true)
+    {
         strcpy(uni, "m");
     }
 
-    if (size == false || path == false || error == true || name == false) {
+    if (size == false || path == false || error == true || name == false)
+    {
         printf("ERROR EN EL COMANDO %s:%s\n", cmd[e].comando, cmd[e + 1].comando);
 
-    } else {
+    }
+    else
+    {
         strcat(auxpath, "/");
         strcat(auxpath, auxnombre);
         existepath(auxpath);
-        if (strcasecmp(uni, "k") == 0) {
+        if (strcasecmp(uni, "k") == 0)
+        {
             crearMBR(auxpath, tamanio * 1024);
-        } else if (strcasecmp(uni, "m") == 0) {
+        }
+        else if (strcasecmp(uni, "m") == 0)
+        {
             crearMBR(auxpath, (tamanio * 1024)*1024);
         }
     }
 }
 
-void crearMBR(char* nombreArchivo, int tamanio) {
+void crearMBR(char* nombreArchivo, int tamanio)
+{
     FILE *tmp;
-    if ((tmp = fopen(nombreArchivo, "rb"))) {
+    if ((tmp = fopen(nombreArchivo, "rb")))
+    {
         printf("DISCO YA EXISTE\n");
         fclose(tmp);
-    } else {
+    }
+    else
+    {
         FILE *disco;
-        if ((disco = fopen(nombreArchivo, "wb"))) {
+        if ((disco = fopen(nombreArchivo, "wb")))
+        {
             MBR mbr;
             char output[20];
             strcpy(output, retornarfecha());
@@ -1240,7 +1884,8 @@ void crearMBR(char* nombreArchivo, int tamanio) {
             particion.part_size = 0;
             particion.part_type = 'N';
             int i;
-            for (i = 0; i < 4; i++) {
+            for (i = 0; i < 4; i++)
+            {
                 mbr.particiones[i] = particion;
             }
             fwrite(&mbr, sizeof (MBR), 1, disco);
@@ -1248,7 +1893,9 @@ void crearMBR(char* nombreArchivo, int tamanio) {
             char trash = '\0';
             fwrite(&trash, 1, 1, disco);
             fclose(disco);
-        } else {
+        }
+        else
+        {
             printf("IMPOSIBLE CREAR EL DISCO\n");
         }
 
@@ -1257,7 +1904,8 @@ void crearMBR(char* nombreArchivo, int tamanio) {
 
 }
 
-void rmDisk(Comando cmd[]) {
+void rmDisk(Comando cmd[])
+{
     char pat[100];
     char auxpath[100];
     char con [2];
@@ -1266,23 +1914,31 @@ void rmDisk(Comando cmd[]) {
     cambio(con);
     limpiarvariables(pat, 100);
     int i = 0;
-    if (strcasecmp(con, "y") == 0) {
-        while (strcasecmp(cmd[i].comando, "vacio") != 0) {
-            if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0) {
+    if (strcasecmp(con, "y") == 0)
+    {
+        while (strcasecmp(cmd[i].comando, "vacio") != 0)
+        {
+            if (strcasecmp(cmd[i].comando, "path") == 0 || strcasecmp(cmd[i].comando, "-path") == 0)
+            {
                 strcpy(pat, cmd[i + 1].comando);
                 printf("LA PATH DEL DISCO SERA: %s \n", pat);
                 limpiarvariables(auxpath, 100);
-                if (pat[0] == '\"') {
+                if (pat[0] == '\"')
+                {
                     int a;
                     //CONCATENANDO TODA LA PATH COMPLETA
-                    for (a = i + 2; a < 25; a++) {
+                    for (a = i + 2; a < 25; a++)
+                    {
                         strcpy(auxpath, cmd[a].comando);
                         int b = contarcaracteres(auxpath);
-                        if (auxpath[b - 1] != '\"') {
+                        if (auxpath[b - 1] != '\"')
+                        {
                             strcat(pat, " ");
                             strcat(pat, auxpath);
                             //limpiarvariables(auxpath, 100);
-                        } else {
+                        }
+                        else
+                        {
                             strcat(pat, " ");
                             strcat(pat, auxpath);
                             a = 25;
@@ -1293,17 +1949,23 @@ void rmDisk(Comando cmd[]) {
                     limpiarvariables(auxpath, 100);
                     int l;
                     int cont = 0;
-                    for (l = 1; l < 100; l++) {
-                        if (pat[l] == '\"') {
+                    for (l = 1; l < 100; l++)
+                    {
+                        if (pat[l] == '\"')
+                        {
                             l = 100;
-                        } else {
+                        }
+                        else
+                        {
                             auxpath[cont] = pat[l];
                             cont++;
                         }
                     }
                     printf("LA CARPETA COMPLETA ES:%s\n", auxpath);
                     existepath(auxpath);
-                } else {
+                }
+                else
+                {
                     strcpy(auxpath, pat);
                     existepath(auxpath);
                 }
@@ -1315,19 +1977,25 @@ void rmDisk(Comando cmd[]) {
             printf("EL ARCHIVO: %s FUE ELIMINADO SATISFACTORIAMENTE\n", cadena);
         else
             printf("PROBLEMAS PARA ELIMAR ARCHIVO\n");
-    } else {
+    }
+    else
+    {
         printf("OK NO ELIMINA NADA");
     }
 }
 
-void existepath(char path[]) {
+void existepath(char path[])
+{
     char aux [500];
     strcpy(aux, path);
     struct stat datosficheros;
     lstat(aux, &datosficheros);
-    if (S_ISREG(datosficheros.st_mode)) {
+    if (S_ISREG(datosficheros.st_mode))
+    {
         printf("YA EXISTE LA CARPETA\n");
-    } else {
+    }
+    else
+    {
         /**************COMPROBANDO QUE CADA DIRECCION DEL PATH EXISTA*********************/
         char completo[500];
         strcpy(completo, path);
@@ -1339,29 +2007,36 @@ void existepath(char path[]) {
         strcpy(value, "/home");
         char * token;
         token = strtok(completo,"/");
-        while(token!=NULL){
-               if (contador > 0) {
-                    if (contador < limite) {
-                        strcat(value, "/");
-                        strcat(value, token);
-                    }
-                    if (mkdir(value, S_IRWXU) == 0) {
-                        printf("SE CREARA LA CARPETA %s\n", value);
-                    }
+        while(token!=NULL)
+        {
+            if (contador > 0)
+            {
+                if (contador < limite)
+                {
+                    strcat(value, "/");
+                    strcat(value, token);
                 }
-                contador++;
-                token = strtok(NULL,"/");
+                if (mkdir(value, S_IRWXU) == 0)
+                {
+                    printf("SE CREARA LA CARPETA %s\n", value);
+                }
+            }
+            contador++;
+            token = strtok(NULL,"/");
         }
         printf("\n");
     }
 }
 
-int sabercuantosslash(char * path) {
+int sabercuantosslash(char * path)
+{
     char * tampath;
     tampath = path;
     int cantidad = 0;
-    while (*tampath) {
-        if (*tampath == '/') {
+    while (*tampath)
+    {
+        if (*tampath == '/')
+        {
             cantidad++;
         }
         tampath++;
@@ -1369,13 +2044,32 @@ int sabercuantosslash(char * path) {
     return cantidad;
 }
 
-    int main() {
+int main()
+{
     int i;
-    for (i = 0; i < 25; i++) {
+    for (i = 0; i < 25; i++)
+    {
         strcpy(VComandos[i].comando, "VACIO");
+        strcpy(Mounts[i].path, "VACIO");
+        int j;
+        for (j = 0; j < 100; j++)
+        {
+            Posiciones auxllenar;
+            auxllenar.aparicion = 0;
+            auxllenar.ocupado = false;
+            Mounts[i].vda[j].aparicion = j + 1;
+            Mounts[i].vda[j].ocupado = false;
+        }
+
+    }
+    for (i = 0; i < 100; i++)
+    {
+        strcpy(YAmontados[i].id, "vacio");
+        YAmontados[i].parametros = Mounts[0];
     }
     int salida = 1;
-    while (salida != 0) {
+    while (salida != 0)
+    {
         char pal[200];
         printf("SHELL:$ ");
         fgets(pal, 200, stdin);
@@ -1389,37 +2083,57 @@ int sabercuantosslash(char * path) {
         int final = strlen(pal) - 1;
         int asci = pal[final];
         char c = pal[final];
-        if (asci == 92) {
+        if (asci == 92)
+        {
             pal[final] = ' ';
             fgets(aux, 100, stdin);
             cambio(aux);
         }
         strcat(pal, aux);
-        if (strcasecmp(pal, "exit") == 0) {
+        if (strcasecmp(pal, "exit") == 0)
+        {
             salida = 0;
             retornarfecha();
             printf("SALIENDO DEL SISTEMA DE CREACION DE DISCOS\n");
-        } else {
+        }
+        else
+        {
             char* token;
             token = strtok(pal, " ");
-            while (token != NULL) {
+            while (token != NULL)
+            {
                 strcpy(VComandos[count].comando, token);
                 count++;
                 token = strtok(NULL, " ::");
             }
             printf("\n");
             printf("\n");
-            if (strcasecmp(VComandos[0].comando, "mkdisk") == 0) {
+            if (strcasecmp(VComandos[0].comando, "mkdisk") == 0)
+            {
                 Mkdisk(VComandos);
-            } else if (strcasecmp(VComandos[0].comando, "rmdisk") == 0) {
+            }
+            else if (strcasecmp(VComandos[0].comando, "rmdisk") == 0)
+            {
                 rmDisk(VComandos);
-            } else if (strcasecmp(VComandos[0].comando, "clear") == 0) {
+            }
+            else if (strcasecmp(VComandos[0].comando, "clear") == 0)
+            {
                 system("clear");
-            } else if (strcasecmp(VComandos[0].comando, "fdisk") == 0) {
+            }
+            else if (strcasecmp(VComandos[0].comando, "fdisk") == 0)
+            {
                 fdisk(VComandos);
-            }  else if (strcasecmp(VComandos[0].comando, "mount") == 0) {
+            }
+            else if (strcasecmp(VComandos[0].comando, "mount") == 0)
+            {
                 mount(VComandos);
-            } else {
+            }
+            else if (strcasecmp(VComandos[0].comando, "mount") == 0)
+            {
+                mount(VComandos);
+            }
+            else
+            {
                 printf("COMANDO INVALIDO\n");
             }
             limpiarcomando();
