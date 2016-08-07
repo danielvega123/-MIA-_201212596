@@ -708,6 +708,111 @@ void crearParticion(char nombreArchivo[], int tamanoreal, char nombre[], char ti
 
 }
 
+void eliminarParticion(char nombreArchivo [], char delete [], char nombre[]) {
+    FILE * ar;
+    bool encontro = false;
+    ar = fopen(nombreArchivo, "rb+");
+    if (ar != NULL) {
+        MBR mb;
+        fread(&mb, sizeof (MBR), 1, ar);
+        int i;
+        int totalparticiones = cuantasEXTENDIDAS(mb) + cuantasPRIMARIAS(mb);
+        Particion auxpart[totalparticiones];
+        //VECTOR DE PARTIICONES ACTIVAS
+        int j, p, cont = 0;
+        for (j = 0; j < 4; j++) {
+            if (mb.particiones[j].part_status == '1') {
+                auxpart[cont] = mb.particiones[j];
+                cont++;
+            }
+        }
+        //ORDENANDO PARTICIONES
+        for (j = 0; j < totalparticiones; j++) {
+            for (p = 0; p < totalparticiones - 1; p++) {
+                if (auxpart[p].part_start > auxpart[p + 1].part_start) {
+                    Particion aux = auxpart[p];
+                    auxpart[p] = auxpart[p + 1];
+                    auxpart[p + 1] = aux;
+                }
+            }
+        }
+
+
+        for (i = 0; i < 4; i++) {
+            if (strcasecmp(auxpart[i].part_name, nombre) == 0) {
+                int totalpar = (cuantasEXTENDIDAS(mb) + cuantasPRIMARIAS(mb)) - 1;
+                if (strcasecmp(delete, "full") == 0) {
+                    //PARTICION AUXILIAR QUE SE VA A SOBREESCRIBIR A LA QUE SE ELIMINARA
+                    Particion particion;
+                    particion.part_fit = 'N';
+                    particion.part_status = '0';
+                    particion.part_start = 0;
+                    strcpy(particion.part_name, "\0");
+                    particion.part_size = 0;
+                    particion.part_type = 'N';
+                    char relleno = '\0';
+                    if (i == totalpar) {
+                        //ES LA ULTIMA PARTICION
+                        int a;
+                        for (a = auxpart[i].part_start; a < mb.mbr_tamanio; a++) {
+                            fseek(ar, a, SEEK_SET);
+                            fwrite(&relleno, sizeof (char), 1, ar);
+                        }
+                    } else if (i < totalpar) {
+                        //HAY UNA PARTICION ADELANTE DE ELLA
+                        int a;
+                        for (a = auxpart[i].part_start; a < auxpart[i + 1].part_start; a++) {
+                            fseek(ar, a, SEEK_SET);
+                            fwrite(&relleno, sizeof (char), 1, ar);
+                        }
+                    }
+                    int j;
+                    for (j = 0; j < 4; j++) {
+                        if (strcasecmp(auxpart[i].part_name, mb.particiones[j].part_name) == 0) {
+                            mb.particiones[j] = particion;
+                            j = 4;
+                        }
+                    }
+                    fseek(ar, 0L, SEEK_SET);
+                    fwrite(&mb, sizeof (MBR), 1, ar);
+                    i = 4;
+                    encontro = true;
+                    printf("SE ELIMINO LA PARTICION CON NOMBRE: %s CON FORMATO FULL\n", nombre);
+
+                } else if (strcasecmp(delete, "fast") == 0) {
+                    //PARTICION AUXILIAR QUE SE SOBREESCRIBIRA SOBRE LA QUE SE ELIMINARA
+                    Particion particion;
+                    particion.part_fit = 'N';
+                    particion.part_status = '0';
+                    particion.part_start = mb.particiones[i].part_start;
+                    strcpy(particion.part_name, "\0");
+                    particion.part_size = mb.particiones[i].part_size;
+                    particion.part_type = 'N';
+                    int j;
+                    for (j = 0; j < 4; j++) {
+                        if (strcasecmp(auxpart[i].part_name, mb.particiones[j].part_name) == 0) {
+                            mb.particiones[j] = particion;
+                        }
+                    }
+                    fseek(ar, 0L, SEEK_SET);
+                    fwrite(&mb, sizeof (MBR), 1, ar);
+                    printf("SE ELIMINO LA PARTICION CON NOMBRE: %s CON FORMATO FAST\n", nombre);
+                    i = 4;
+                    encontro = true;
+                }
+            }
+            }
+        if (encontro == false) {
+            printf("LA PARTICION CON NOMBRE %s NO SE ENCUENTRA EN ESTE DISCO \n", nombre);
+        }
+        fclose(ar);
+    } else {
+        printf("NO EXISTE LA RUTA DEL ARCHIVO\n");
+    }
+
+}
+
+
 void fdisk(Comando cmd[])
 {
     bool error = false;
