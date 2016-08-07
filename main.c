@@ -1718,6 +1718,118 @@ void generarreporte(char nombreArchivo[], char nombreSalida[]) {
     strcat(cmd, aux);
     system(cmd);
 }
+void generarreporteMBR(char nombreArchivo[], char nombreSalida[]) {
+    MBR mb;
+    int count = 0;
+    int contador = 0;
+    FILE * ar;
+    FILE * ardot;
+    ardot = fopen(nombreArchivo, "rb+");
+    ar = fopen("/home/daniel/Escritorio/MBR.dot", "wt+");
+    char str[15];
+    if (ardot != NULL) {
+        fread(&mb, sizeof (MBR), 1, ardot);
+    } else {
+        printf("ERROR AL ABRIR EL ARCHIVO\n");
+    }
+    //COMENZANDO A LEER EL ARCHIVO
+    if (ar != NULL) {
+        fprintf(ar, "digraph G {\n nodesep=.05;\n rankdir=LR;\n  node [shape=plaintext,width=.1,height=.1];\n");
+        //GRAFICANDO EL MBR
+        fprintf(ar, "node%d [label=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\"", contador);
+        contador++;
+        fprintf(ar, "> <tr><td><b>NOMBRE</b></td><td><b>VALOR</b></td></tr>");
+        fprintf(ar, "<tr><td>mbr_tamanio</td><td>%d</td></tr>", mb.mbr_tamanio);
+        fprintf(ar, "<tr><td>mbr_fecha</td><td>%s</td></tr>", mb.mbr_fecha_creacion);
+        fprintf(ar, "<tr><td>mbr_disk_signature</td><td>%d</td></tr>", mb.mbr_disk_signature);
+        int h;
+        for (h = 0; h < 4; h++) {
+            if(mb.particiones[h].part_status=='1'){
+            //printf("POS %d START %d SIZE %d\n", h, auxpart[h].part_start, auxpart[h].part_size);
+            fprintf(ar, "<tr><td>part_name_%d</td><td>%s</td></tr>\n", h, mb.particiones[h].part_name);
+            fprintf(ar, "<tr><td>part_start_%d</td><td>%d</td></tr>\n", h,mb.particiones[h].part_start);
+            fprintf(ar, "<tr><td>part_type_%d</td><td>%c</td></tr>\n", h, mb.particiones[h].part_type);
+            fprintf(ar, "<tr><td>part_fit_%d</td><td>%c</td></tr>\n", h, mb.particiones[h].part_fit);
+            fprintf(ar, "<tr><td>part_start_%d</td><td>%d</td></tr>\n", h, mb.particiones[h].part_start);
+            fprintf(ar, "<tr><td>part_tamanio_%d</td><td>%d</td></tr>\n", h,mb.particiones[h].part_size);
+            }
+        }
+
+        fprintf(ar, " </table>>];\n");
+
+        //VALIDANDO QUE EXISTAN PARTICIONES LOGICAS
+        for (h = 0; h < 4; h++) {
+            int i;
+            FILE * nuevodisco;
+            int ecount = 0;
+            if ((mb.particiones[h].part_type == 'e' || mb.particiones[h].part_type == 'E')&&mb.particiones[h].part_status=='1') {
+                    EBR veclogicas[50];
+                    int logic = 0;
+                    int j;
+                    EBR ebr;
+
+                    fseek(ardot, mb.particiones[h].part_start, SEEK_SET);
+                    fread(&ebr, sizeof (EBR), 1, ardot);
+                    j = 0;
+                    while (j < 50) {
+                        if (ebr.part_next == -1) {
+                            if (ebr.part_status == '1') {
+                                veclogicas[logic] = ebr;
+                                logic++;
+                            }
+                            break;
+                        }
+                        if (ebr.part_status == '1') {
+                            veclogicas[logic] = ebr;
+                            logic++;
+
+                        }
+                        fseek(ardot, ebr.part_next, SEEK_SET);
+                        fread(&ebr, sizeof (EBR), 1, ardot);
+                        j++;
+                    }
+
+                    j = 0;
+                    bool primera = false;
+                    int a = 100;
+                    while (j < (logic-1) ) {
+
+                      fprintf(ar, "node%d [label=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\"", contador);
+                        contador++;
+                        fprintf(ar, "> <tr><td><b>NOMBRE</b></td><td><b>VALOR</b></td></tr>\n");
+                        fprintf(ar, "<tr><td>part_fit_%d</td><td>%c</td></tr>\n", ecount, veclogicas[j].part_fit);
+                        fprintf(ar, "<tr><td>part_name_%d</td><td>%s</td></tr>\n", ecount, veclogicas[j].part_name);
+                        fprintf(ar, "<tr><td>part_next_%d</td><td>%d</td></tr>\n", ecount, veclogicas[j].part_next);
+                        fprintf(ar, "<tr><td>part_size_%d</td><td>%d</td></tr>\n", ecount, veclogicas[j].part_size);
+                        fprintf(ar, "<tr><td>part_start_%d</td><td>%d</td></tr>\n", ecount, veclogicas[j].part_start);
+                        fprintf(ar, "<tr><td>part_status_%d</td><td>%c</td></tr>\n", ecount, veclogicas[j].part_status);
+                        ecount++;
+                        fprintf(ar, " </table>>];\n");
+
+                        j++;
+
+                    }
+
+            }
+        }
+        fprintf(ar, "\n}");
+        fclose(ar);
+        fclose(ardot);
+    } else {
+        printf("NO EXISTE EL ARCHIVO\n");
+    }
+
+    char cmd [200];
+    char aux[100];
+    limpiarvariables(aux, 100);
+    limpiarvariables(cmd, 200);
+    strcat(aux, "\"");
+    strcat(aux, nombreSalida);
+    strcat(aux, "\"");
+    strcpy(cmd, "dot -Tpdf /home/daniel/Escritorio/MBR.dot -o");
+    strcat(cmd, aux);
+    system(cmd);
+}
 
 void rep(Comando cmd[]) {
     bool ide = false;
@@ -1878,7 +1990,7 @@ void rep(Comando cmd[]) {
             if (strcasecmp(nombre, "disk") == 0) {
                 generarreporte(nombreArchivo, auxpath);
             } else if (strcasecmp(nombre, "mbr") == 0) {
-                //reporte mbr
+                generarreporteMBR(nombreArchivo,auxpath);
             }
         } else {
             printf("ERROR FALTAN PARAMETROS [ID-NOMBRE-PATH]\n");
