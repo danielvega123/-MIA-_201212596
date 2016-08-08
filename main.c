@@ -801,7 +801,132 @@ void eliminarParticion(char nombreArchivo [], char delete [], char nombre[]) {
                     encontro = true;
                 }
             }
+
+/*************SI LA PARTICION ES UNA LOGICA*/
+            else if (auxpart[i].part_type == 'E' || auxpart[i].part_type == 'e') {
+                //PARTICION QUE VA A SUSTITUIR
+                EBR veclogicas[50];
+                int logic = 0;
+                int j;
+                EBR ebr;
+
+                fseek(ar, auxpart[i].part_start, SEEK_SET);
+                fread(&ebr, sizeof (EBR), 1, ar);
+                j = 0;
+                while (j < 50) {
+                    if (ebr.part_next == -1) {
+                        if (ebr.part_status == '1') {
+                            veclogicas[logic] = ebr;
+                            logic++;
+                        }
+                        break;
+                    }
+                    if (ebr.part_status == '1') {
+                        veclogicas[logic] = ebr;
+                        logic++;
+
+                    }
+                    fseek(ar, ebr.part_next, SEEK_SET);
+                    fread(&ebr, sizeof (EBR), 1, ar);
+                    j++;
+                }
+                int logicas = logic - 1;
+                j = logic - 1;
+                EBR final, siguiente, anterior, actual;
+                while (logicas >= 0) {
+                    if (strcmp(veclogicas[logicas].part_name, nombre) == 0) {
+                        //SI ES LA PRIMER PARTICION
+                        if (auxpart[i].part_start == veclogicas[logicas].part_start) {
+                            //printf("NO SE PUEDE ELIMINAR LA PRIMER PARTICION DE LA EXTENDIDA\n");
+                            fseek(ar, veclogicas[logicas].part_start, SEEK_SET);
+                            fread(&actual, sizeof (EBR), 1, ar);
+                            actual.part_status = '0';
+                            fseek(ar, veclogicas[logicas].part_start, SEEK_SET);
+                            fwrite(&actual, sizeof (EBR), 1, ar);
+                            fseek(ar, 0L, SEEK_SET);
+                            fwrite(&mb, sizeof (MBR), 1, ar);
+
+                            printf("SE HA ELIMINADO LA PRIMERA PARTICION LOGICA CON NOMBRE %s\n", nombre);
+                            i = 4;
+                            encontro = true;
+                            break;
+                        }//SI ESTA EN MEDIO DE DOS PARTICIONES
+                        else if (veclogicas[logicas].part_next != -1 && logicas > 0) {
+                            //SI ESTA ATRAS DEL EBR NULO
+                            if (logicas == (logic - 1)) {
+                                actual = veclogicas[logicas];
+                                anterior = veclogicas[logicas - 1];
+                                fseek(ar, veclogicas[logicas].part_next, SEEK_SET);
+                                fread(&final, sizeof (EBR), 1, ar);
+                                if (final.part_next == -1) {
+                                    anterior.part_next = final.part_start;
+                                    if (strcasecmp(delete, "full") == 0) {
+                                        char relleno = '\0';
+                                        int fin = actual.part_start + actual.part_size;
+                                        int step;
+                                        for (step = actual.part_start; step < fin; step++) {
+                                            fseek(ar, step, SEEK_SET);
+                                            fwrite(&relleno, sizeof (char), 1, ar);
+                                        }
+                                        fseek(ar, anterior.part_start, SEEK_SET);
+                                        fwrite(&anterior, sizeof (EBR), 1, ar);
+                                        printf("SE ELIMINO CORRECTAMENTE LA PARTICION %s CON FORMATO FULL", nombre);
+                                        i = 4;
+                                        encontro = true;
+                                        break;
+                                    } else if (strcasecmp(delete, "fast") == 0) {
+                                        anterior.part_next = final.part_start;
+                                        actual.part_status = '0';
+                                        fseek(ar, anterior.part_start, SEEK_SET);
+                                        fwrite(&anterior, sizeof (EBR), 1, ar);
+                                        fseek(ar, actual.part_start, SEEK_SET);
+                                        fwrite(&actual, sizeof (EBR), 1, ar);
+                                        printf("SE ELIMINO CORRECTAMENTE LA PARTICION %s CON FORMATO FAST", nombre);
+                                        i = 4;
+                                        encontro = true;
+                                        break;
+                                    }
+                                }
+                            }//CUANTO ADELANTE DE EL NO ESTA LA ULTIMA PARTICION
+                            else if (logicas > 0 && logicas < (logic - 1)) {
+                                anterior = veclogicas[logicas - 1];
+                                actual = veclogicas[logicas];
+                                siguiente = veclogicas[logicas + 1];
+                                anterior.part_next = siguiente.part_start;
+                                actual.part_status = '0';
+                                if (strcasecmp(delete, "full") == 0) {
+                                    char relleno = '\0';
+                                    int fin = actual.part_start + actual.part_size;
+                                    int step;
+                                    for (step = actual.part_start; step < fin; step++) {
+                                        fseek(ar, step, SEEK_SET);
+                                        fwrite(&relleno, sizeof (char), 1, ar);
+                                    }
+                                    fseek(ar, anterior.part_start, SEEK_SET);
+                                    fwrite(&anterior, sizeof (EBR), 1, ar);
+                                    fseek(ar, siguiente.part_start, SEEK_SET);
+                                    fwrite(&siguiente, sizeof (EBR), 1, ar);
+                                    printf("SE ELIMINO CORRECTAMENTE LA PARTICION %s CON FORMATO FULL", nombre);
+                                    encontro = true;
+                                    i = 4;
+                                    break;
+                                } else if (strcasecmp(delete, "fast") == 0) {
+                                    fseek(ar, anterior.part_start, SEEK_SET);
+                                    fwrite(&anterior, sizeof (EBR), 1, ar);
+                                    fseek(ar, siguiente.part_start, SEEK_SET);
+                                    fwrite(&siguiente, sizeof (EBR), 1, ar);
+                                    printf("SE ELIMINO CORRECTAMENTE LA PARTICION %s CON FORMATO FULL", nombre);
+                                    encontro = true;
+                                    i = 4;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    logicas--;
+                }
             }
+        }
         if (encontro == false) {
             printf("LA PARTICION CON NOMBRE %s NO SE ENCUENTRA EN ESTE DISCO \n", nombre);
         }
