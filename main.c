@@ -937,6 +937,226 @@ void eliminarParticion(char nombreArchivo [], char delete [], char nombre[]) {
 
 }
 
+void agregarEspacio(char nombreArchivo[], char nombreParticion[], int cantidad) {
+    FILE* ar;
+    ar = fopen(nombreArchivo, "rb+");
+    MBR mb;
+    if (ar != NULL) {
+        fread(&mb, sizeof (MBR), 1, ar);
+        int ext = cuantasEXTENDIDAS(mb);
+        int pri = cuantasPRIMARIAS(mb);
+        int totalparticiones = ext + pri;
+        Particion auxpart[totalparticiones];
+        int val1, val2, cont = 0;
+
+        //PARTICIONES ACTIVAS
+        for (val1 = 0; val1 < 4; val1++) {
+            if (mb.particiones[val1].part_start > 0 && mb.particiones[val1].part_status != '0') {
+                auxpart[cont] = mb.particiones[val1];
+                cont++;
+            }
+        }
+        //PARTICIONES ORDENADAS
+        for (val1 = 0; val1 < totalparticiones; val1++) {
+            for (val2 = 0; val2 < totalparticiones - 1; val2++) {
+                if (auxpart[val2].part_start > auxpart[val2 + 1].part_start) {
+                    Particion aux = auxpart[val2];
+                    auxpart[val2] = auxpart[val2 + 1];
+                    auxpart[val2 + 1] = aux;
+                }
+            }
+        }
+
+        bool encontro = false;
+        int h;
+        int espacio;
+        for (h = 0; h < totalparticiones; h++) {
+            if (strcasecmp(auxpart[h].part_name, nombreParticion) == 0) {
+                encontro = true;
+                int parti = totalparticiones - (h + 1);
+                if (parti > 0) {
+                    if (cantidad > 0) {
+                        //SE AGREGAN ESPACIO
+                        espacio = auxpart[h + 1].part_start - (auxpart[h].part_start + auxpart[h].part_size + 1);
+                        if (espacio > cantidad) {
+                            printf("SE AGREGARA EL ESPACIO %d A LA PARTICION %s\n", cantidad, nombreParticion);
+                            int aumento = auxpart[h].part_size + cantidad;
+                            Particion aux;
+                            aux.part_fit = auxpart[h].part_fit;
+                            strcpy(aux.part_name, auxpart[h].part_name);
+                            aux.part_size = aumento;
+                            aux.part_start = auxpart[h].part_start;
+                            aux.part_status = auxpart[h].part_status;
+                            aux.part_type = auxpart[h].part_type;
+                            int i;
+                            for (i = 0; i < 4; i++) {
+                                if (strcasecmp(mb.particiones[i].part_name, nombreParticion) == 0) {
+                                    mb.particiones[i] = aux;
+                                    i = 4;
+                                }
+                            }
+                            fseek(ar, 0L, SEEK_SET);
+                            fwrite(&mb, sizeof (MBR), 1, ar);
+                            h = totalparticiones;
+                        } else {
+                            printf("NO HAY ESPACIO PARA AGREGARLE A LA PARTICION\n");
+                        }
+                    } else {
+                        espacio = (auxpart[h].part_size + cantidad);
+                        //PARA QUITAR ESPACIO
+                        if (espacio >= (2*1024*1024)) {
+                            printf("SE LE QUITARAN %d DE ESPACIO A LA PARTICION %s\n", cantidad, nombreParticion);
+                            int quitar = auxpart[h].part_size + cantidad;
+                            Particion aux;
+                            aux.part_fit = auxpart[h].part_fit;
+                            strcpy(aux.part_name, auxpart[h].part_name);
+                            aux.part_size = quitar;
+                            aux.part_start = auxpart[h].part_start;
+                            aux.part_status = auxpart[h].part_status;
+                            aux.part_type = auxpart[h].part_type;
+                            int i;
+                            for (i = 0; i < 4; i++) {
+                                if (strcasecmp(mb.particiones[i].part_name, nombreParticion) == 0) {
+                                    mb.particiones[i] = aux;
+                                    i = 4;
+                                }
+                            }
+                            fseek(ar, 0L, SEEK_SET);
+                            fwrite(&mb, sizeof (MBR), 1, ar);
+                            h = totalparticiones;
+                        } else {
+                            printf("NO SE LE PUEDE QUITAR ESPACIO A LA PARTICION NO QUEDARIA UN TAMANIO MINIMO DE 2 MB\n");
+                        }
+                    }
+
+                } else {
+                    if (cantidad > 0) {
+                        //SE AGREGARA ESPACIO
+                        espacio = mb.mbr_tamanio - (auxpart[h].part_start + auxpart[h].part_size + 1);
+                        if (espacio > cantidad) {
+                            printf("SE AGREGARA EL ESPACIO %d A LA PARTICION %s\n", cantidad, nombreParticion);
+                            int aumento = auxpart[h].part_size + cantidad;
+                            Particion aux;
+                            aux.part_fit = auxpart[h].part_fit;
+                            strcpy(aux.part_name, auxpart[h].part_name);
+                            aux.part_size = aumento;
+                            aux.part_start = auxpart[h].part_start;
+                            aux.part_status = auxpart[h].part_status;
+                            aux.part_type = auxpart[h].part_type;
+                            int i;
+                            for (i = 0; i < 4; i++) {
+                                if (strcasecmp(mb.particiones[i].part_name, nombreParticion) == 0) {
+                                    mb.particiones[i] = aux;
+                                    i = 4;
+                                }
+                            }
+                            fseek(ar, 0L, SEEK_SET);
+                            fwrite(&mb, sizeof (MBR), 1, ar);
+                            h = totalparticiones;
+                        } else {
+                            printf("NO HAY ESPACIO PARA AGREGARLE A LA PARTICION\n");
+                        }
+                    } else {
+                        espacio = (auxpart[h].part_size + cantidad);
+                        if (espacio >= (2*1024*1024)) {
+                            //QUITAR ESPACIO
+                            printf("SE LE QUITARAN %d DE ESPACIO A LA PARTICION %s\n", cantidad, nombreParticion);
+                            int quitar = auxpart[h].part_size + cantidad;
+                            Particion aux;
+                            aux.part_fit = auxpart[h].part_fit;
+                            strcpy(aux.part_name, auxpart[h].part_name);
+                            aux.part_size = quitar;
+                            aux.part_start = auxpart[h].part_start;
+                            aux.part_status = auxpart[h].part_status;
+                            aux.part_type = auxpart[h].part_type;
+                            int i;
+                            for (i = 0; i < 4; i++) {
+                                if (strcasecmp(mb.particiones[i].part_name, nombreParticion) == 0) {
+                                    mb.particiones[i] = aux;
+                                    i = 4;
+                                }
+                            }
+                            fseek(ar, 0L, SEEK_SET);
+                            fwrite(&mb, sizeof (MBR), 1, ar);
+                            h = totalparticiones;
+                        } else {
+                            printf("NO SE LE PUEDE QUITAR ESPACIO A LA PARTICION NO QUEDARIA UN TAMANIO MINIMO DE 2MB\n");
+                        }
+                    }
+                }
+            }//SI ES UNA PARTICION LOGICA
+            else if (auxpart[h].part_type == 'E' || auxpart[h].part_type == 'e') {
+                EBR auxnombres;
+                int fin = auxpart[h].part_size + auxpart[h].part_start;
+                bool ultima = false;
+                int i;
+                //RECORRO DE EBR EN EBR
+                for (i = auxpart[h].part_start; ultima == false; i++) {
+                    ar = fopen(nombreArchivo, "rb+");
+                    fseek(ar, i, SEEK_SET);
+                    fread(&auxnombres, sizeof (EBR), 1, ar);
+                    if (strcasecmp(auxnombres.part_name, nombreParticion) == 0) {
+                        encontro = true;
+                        if (cantidad > 0) {
+                            //SE AGREGARA ESPACIO A LA LOGICA
+                            EBR siguiente;
+                            fseek(ar, auxnombres.part_next, SEEK_SET);
+                            fread(&siguiente, sizeof (EBR), 1, ar);
+                            if (siguiente.part_next == -1) {
+                                //SE VALIDA EL ESPACIO CON EL TAMANIO TOTAL DE LA EXTENDIDA
+                                espacio = (auxpart[h].part_start + auxpart[h].part_size) - (auxnombres.part_start + auxnombres.part_size);
+                            } else {
+                                //HAY UN EBR ADELANTE VALIDO CUANTO ESPACIO TIENE DE POR MEDIO
+                                espacio = siguiente.part_start - (auxnombres.part_start + auxnombres.part_size + 1);
+
+                            }
+                            if (espacio > 0) {
+                                printf("SE AGREGARA LA CANTIDAD DE ESPACIO %d A LA PARTICION %s\n", cantidad, auxnombres.part_name);
+                                auxnombres.part_size = auxnombres.part_size + cantidad;
+                                siguiente.part_start = auxnombres.part_size + auxnombres.part_start + 1;
+                                fseek(ar, auxnombres.part_start, SEEK_SET);
+                                fwrite(&auxnombres, sizeof (EBR), 1, ar);
+                                fseek(ar, siguiente.part_start, SEEK_SET);
+                                fwrite(&siguiente, sizeof (EBR), 1, ar);
+                                break;
+                            } else {
+                                printf("ESTA PARTICION NO LE ES POSIBLE AGRANDAR SU TAMANO ORIGINAL\n");
+                            }
+                        } else {
+                            //SE QUITARA ESPACIO A LA LOGICA
+                            EBR siguiente;
+                            fseek(ar, auxnombres.part_next, SEEK_SET);
+                            fread(&siguiente, sizeof (EBR), 1, ar);
+                            espacio = auxnombres.part_size + cantidad;
+                            if (espacio >= (2*1024*1024)) {
+                                printf("SE QUITARA LA CANTIDAD DE ESPACIO %d A LA PARTICION %s\n", cantidad, auxnombres.part_name);
+                                auxnombres.part_size = auxnombres.part_size + cantidad;
+                                fseek(ar, auxnombres.part_start, SEEK_SET);
+                                fwrite(&auxnombres, sizeof (EBR), 1, ar);
+                                break;
+                            } else {
+                                printf("ESTA PARTICION NO LE ES POSIBLE MINIMIZAR SU TAMANO ORIGINAL NO LLEGA AL TAMANIO MINIMO DE 2MB\n");
+                            }
+
+                        }
+                    }
+                    if (auxnombres.part_next == -1) {
+                        ultima = true;
+                    }
+                    i = auxnombres.part_next - 1;
+                }
+            }
+        }
+        if (encontro == true) {
+        } else {
+            printf("LA PARTICION CON NOMBRE %s NO SE ENCUENTRA EN EL DISCO\n", nombreParticion);
+        }
+        fclose(ar);
+    } else {
+        printf("EL FICHERO NO EXISTE\n");
+    }
+
+}
 
 void fdisk(Comando cmd[])
 {
@@ -1327,7 +1547,7 @@ void fdisk(Comando cmd[])
     {
         if (delete == true && name == true && path == true && error == false)
         {
-            //METODO PARA ELIMINAR PARTICINES
+             eliminarParticion(auxpath, deletee, nombre);
             ejecuto = true;
         }
         else
@@ -1371,7 +1591,7 @@ void fdisk(Comando cmd[])
                     valorreal = (agregar * 1024);
                 }
             }
-            //METODO PARA AGREGAR ESPACIO
+           agregarEspacio(auxpath, nombre, valorreal);
         }
         else
         {
