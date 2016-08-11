@@ -726,17 +726,6 @@ void eliminarParticion(char nombreArchivo [], char delete [], char nombre[]) {
                 cont++;
             }
         }
-        //ORDENANDO PARTICIONES
-        for (j = 0; j < totalparticiones; j++) {
-            for (p = 0; p < totalparticiones - 1; p++) {
-                if (auxpart[p].part_start > auxpart[p + 1].part_start) {
-                    Particion aux = auxpart[p];
-                    auxpart[p] = auxpart[p + 1];
-                    auxpart[p + 1] = aux;
-                }
-            }
-        }
-
 
         for (i = 0; i < 4; i++) {
             if (strcasecmp(auxpart[i].part_name, nombre) == 0) {
@@ -1602,6 +1591,120 @@ void fdisk(Comando cmd[])
 }
 
 
+idunmount idis[20];
+
+void llenarvecid() {
+    int i;
+    for (i = 0; i < 20; i++) {
+        char id [10];
+        char str[10];
+        limpiarvariables(str, 10);
+        limpiarvariables(id, 10);
+        strcat(id, "-id");
+        -
+        sprintf(str, "%d", i);
+        strcat(id, str);
+        strcpy(idis[i].id, id);
+    }
+}
+
+bool validarid(char id[]) {
+    bool valido = false;
+    int i;
+    for (i = 0; i < 20; i++) {
+        if (strcasecmp(idis[i].id, id) == 0) {
+            valido = true;
+            break;
+        }
+
+    }
+    return valido;
+
+}
+
+void unmount(Comando cmd[]) {
+    bool ide = false;
+    bool encontro = false;
+    char id[10];
+    limpiarvariables(id, 10);
+    int i = 0;
+    int contador = 0;
+    int count = 0;
+    idunmount desmontar[20];
+    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
+        contador++;
+        i++;
+    }
+    i = 0;
+    llenarvecid();
+    while (strcasecmp(cmd[i].comando, "vacio") != 0) {
+        if (validarid(cmd[i].comando) == true) {
+            //if (strcasecmp(cmd[i].comando, "-id") == 0 || strcasecmp(cmd[i].comando, "id") == 0) {
+            ide = true;
+            //SI VIENEN MAS DE UN ID PARA DESMONTAR
+            if (contador > 3) {
+                strcpy(desmontar[count].id, cmd[i + 1].comando);
+                printf("EL ID PARA BORRAR SERA:%s\n", cmd[i + 1].comando);
+                count++;
+            } else {
+                strcpy(desmontar[count].id, cmd[i + 1].comando);
+                printf("EL ID PARA BORRAR SERA:%s\n", cmd[i + 1].comando);
+                count++;
+            }
+            //printf("EL ID PARA BORRAR SERA:%s\n", id);
+        }
+        i++;
+    }
+    if (ide == true) {
+        int k, h;
+        for (h = 0; h < contador; h++) {
+            for (k = 0; k < 100; k++) {
+                if (strcmp(YAmontados[k].id, desmontar[h].id) == 0) {
+                    int j;
+                    char num;
+                    char num2;
+                    int indice;
+                    if (strlen(id) < 5) {
+                        num = id[3];
+                        indice = num;
+                    } else {
+                        num = id[3];
+                        num2 = id[4];
+                        int val1 = num;
+                        int val2 = num;
+                        indice = (val1 * 10 + val2) - 1;
+
+                    }
+                    for (j = 0; j < 25; j++) {
+                        Montados aux = Mounts[j];
+                        if (strcmp(Mounts[j].path, YAmontados[k].parametros.path) == 0) {
+                            Mounts[j].vda[indice].ocupado = false;
+                            j = 25;
+                        }
+                    }
+                    printf("SE ELIMINO CORRECTAMENTE EL ID:%s\n", desmontar[h].id);
+
+                    strcpy(YAmontados[k].nombreParticion, "VACIO");
+                    strcpy(YAmontados[k].id, "VACIO");
+                    strcpy(YAmontados[k].parametros.path, "VACIO");
+                    YAmontados[cuantosmontados].iniciopart = 0;
+                    YAmontados[cuantosmontados].tamanio = 0;
+
+                    encontro = true;
+                    k = 100;
+                }
+            }
+            if (encontro == false) {
+                printf("NO EXISTE EL ID:%s\n", desmontar[h].id);
+            }
+        }
+
+    } else {
+        printf("ERROR NO SE ENCONTRO EL PARAMETRO [ID]\n");
+    }
+
+}
+
 bool yafuemontado(char path[], char nombre[])
 {
     int k;
@@ -1970,16 +2073,6 @@ void generarreporte(char nombreArchivo[], char nombreSalida[]) {
             }
         }
 
-        //ORDENANDO POR MEDIO DE BIT DE MAYOR A MENOR
-        for (j = 0; j < totalparticiones; j++) {
-            for (p = 0; p < totalparticiones - 1; p++) {
-                if (auxpart[p].part_start > auxpart[p + 1].part_start) {
-                    Particion aux = auxpart[p];
-                    auxpart[p] = auxpart[p + 1];
-                    auxpart[p + 1] = aux;
-                }
-            }
-        }
 
         fprintf(ar, "digraph G {\n nodesep=.05;\n rankdir=BT;\n  node [shape=record,style=filled,fillcolor=goldenrod3]\n");
         fprintf(ar, "label=\"DISCO LWH\";\n");
@@ -2997,6 +3090,8 @@ int main()
                 mount(VComandos);
             }else if (strcasecmp(VComandos[0].comando, "rep") == 0) {
                 rep(VComandos);
+            }else if (strcasecmp(VComandos[0].comando, "umount") == 0) {
+                unmount(VComandos);
             }
             else
             {
