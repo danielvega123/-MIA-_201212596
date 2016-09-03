@@ -3015,7 +3015,29 @@ int main()
             }
             else
             {
+            //<tr><td>sb_detalle_directorio_count</td><td>33661</td></tr>
                 printf("COMANDO INVALIDO\n");
+                FILE * prueba = fopen("/home/daniel/Escritorio/bitmaps.txt","wt+");
+                if(prueba!=NULL){
+                int i,j;
+               i=0;
+                for(j=0;j<4;j++){
+                int lim = i+25;
+                fprintf(prueba,"<tr>");
+                               for(i;i<lim;i++){
+                    fprintf(prueba,"<td>%d</td>",0);
+                }
+                fprintf(prueba,"</tr>\n");
+
+                }
+                /*for(i=0;i<25;i++){
+                    fprintf(prueba,"<tr><td><b>-</b></td><td><b>-</b></td><td><b>-</b></td><td><b>-</b></td></tr>\n");
+                }*/
+
+                fclose(prueba);
+                }else{
+                    printf("ERROR AL ABRIR");
+                }
             }
             limpiarcomando();
         }
